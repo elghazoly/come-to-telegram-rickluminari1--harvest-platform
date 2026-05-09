@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --blue-dark: #0a2d6e;
+  --blue-mid:  #1a4fa8;
+  --gold:      #e8a020;
+}
+
+body { font-family: 'Segoe UI', Tahoma, sans-serif; }

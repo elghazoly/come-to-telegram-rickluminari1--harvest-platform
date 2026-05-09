@@ -1,0 +1,16 @@
+{
+  "name": "harvest-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:admin":   "pnpm --filter admin dev",
+    "dev:teacher": "pnpm --filter teacher dev",
+    "dev:student": "pnpm --filter student dev",
+    "dev":         "pnpm --parallel dev",
+    "build":       "pnpm --filter \"./packages/*\" build && pnpm --filter \"./apps/*\" build",
+    "lint":        "pnpm --recursive lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
