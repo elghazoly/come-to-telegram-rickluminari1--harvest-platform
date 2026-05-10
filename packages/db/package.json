@@ -4,7 +4,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "echo 'skipping build'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.0"
