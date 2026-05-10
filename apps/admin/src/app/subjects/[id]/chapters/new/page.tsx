@@ -1,5 +1,8 @@
 'use client'
 import { useState, useRef, useCallback } from 'react'
+
+// Module-level variable — survives re-renders with no timing issues
+let _mdContent = ''
 import { createClient } from '@supabase/supabase-js'
 import { useRouter, useParams } from 'next/navigation'
 
@@ -82,7 +85,8 @@ export default function NewChapterPage() {
       mdContent = d.markdown
     }
 
-    // Store in ref for reliable access
+    // Store in module-level var (100% reliable, no timing issues)
+    _mdContent = mdContent
     mdRef.current = mdContent
     setMarkdown(mdContent)
     setTokenEstimate(estimateTokens(mdContent))
@@ -92,7 +96,7 @@ export default function NewChapterPage() {
 
   // ── Extract: send to Claude ──────────────────────────────
   async function handleConvert() {
-    const mdContent = mdRef.current
+    const mdContent = _mdContent
     if (!mdContent) { setError('الملف غير جاهز، أعد رفعه'); setLoading(false); return }
     setLoading(true); setError('')
     setShowConfirm(false)
