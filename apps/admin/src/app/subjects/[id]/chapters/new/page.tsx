@@ -59,7 +59,7 @@ export default function NewChapterPage() {
     return { input: inputTokens, output: outputTokens, cost }
   }
 
-  // ── Step 0: Prepare file and show token estimate ─────────
+  // ── Prepare: read file + estimate tokens ───────────────
   async function handlePrepare() {
     if (!pdfFile) { setError(`اختر ملف ${fileType === 'pdf' ? 'PDF' : 'Markdown'} أولاً`); return }
     if (!chapterName.trim()) { setError('أدخل اسم الفصل'); return }
@@ -82,32 +82,26 @@ export default function NewChapterPage() {
       mdContent = d.markdown
     }
 
+    // Store in ref for reliable access
     mdRef.current = mdContent
-    setMdReady(mdContent)
     setMarkdown(mdContent)
-    const est = estimateTokens(mdContent)
-    setTokenEstimate(est)
+    setTokenEstimate(estimateTokens(mdContent))
     setShowConfirm(true)
     setLoading(false)
   }
 
-  // ── Step 1: Extract questions from prepared MD ──────────
+  // ── Extract: send to Claude ──────────────────────────────
   async function handleConvert() {
-    if (!chapterName.trim()) { setError('أدخل اسم الفصل'); return }
-    setLoading(true); setError('')
-    setShowConfirm(false)
-
-    // Use ref for immediate access (avoids React state timing issues)
     const mdContent = mdRef.current
     if (!mdContent) { setError('الملف غير جاهز، أعد رفعه'); setLoading(false); return }
-
+    setLoading(true); setError('')
+    setShowConfirm(false)
     setLoadingMsg('جاري تحليل الأسئلة بالذكاء الاصطناعي...')
 
-    // ── Step 2: Extract questions ────────────────────────
     const r2 = await fetch('/api/extract-questions', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ markdown: mdContent, rules, chapterId: 'temp' })
+      body:    JSON.stringify({ markdown: mdContent, rules })
     })
     const d2 = await r2.json()
 
@@ -120,6 +114,8 @@ export default function NewChapterPage() {
     setLoading(false)
     setStep('review')
   }
+
+
 
   // ── Step 3: Save to Supabase ─────────────────────────────
   async function handleSave() {
@@ -352,7 +348,7 @@ export default function NewChapterPage() {
                   <br/>السعر: $0.25/مليون توكن إدخال • $1.25/مليون توكن إخراج
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => handleConvert()}
+                  <button onClick={handleConvert}
                           className="flex-1 py-3 rounded-xl text-white font-bold text-sm shadow"
                           style={{ background: 'linear-gradient(90deg, #0e7a3e, #16a34a)' }}>
                     ✅ تأكيد وإرسال لـ Claude
