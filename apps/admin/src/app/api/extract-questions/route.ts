@@ -7,8 +7,8 @@ const client = new Anthropic({
 
 export async function POST(req: Request) {
   const { markdown, rules, chapterId } = await req.json()
-  if (!markdown || !chapterId) {
-    return NextResponse.json({ error: 'markdown and chapterId required' }, { status: 400 })
+  if (!markdown) {
+    return NextResponse.json({ error: 'markdown is required' }, { status: 400 })
   }
 
   const systemPrompt = `أنت مساعد متخصص في استخراج أسئلة الاختيار من متعدد من الملفات التعليمية.

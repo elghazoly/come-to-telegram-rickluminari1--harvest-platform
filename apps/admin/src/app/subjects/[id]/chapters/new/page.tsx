@@ -91,11 +91,14 @@ export default function NewChapterPage() {
 
   // ── Step 1: Extract questions from prepared MD ──────────
   async function handleConvert() {
-    if (!pdfFile) { setError(`اختر ملف ${fileType === 'pdf' ? 'PDF' : 'Markdown'} أولاً`); return }
     if (!chapterName.trim()) { setError('أدخل اسم الفصل'); return }
     setLoading(true); setError('')
     setShowConfirm(false)
+
+    // mdReady is set by handlePrepare — use it directly
     const mdContent = mdReady
+    if (!mdContent) { setError('الملف غير جاهز، أعد رفعه'); setLoading(false); return }
+
     setLoadingMsg('جاري تحليل الأسئلة بالذكاء الاصطناعي...')
 
     // ── Step 2: Extract questions ────────────────────────
@@ -347,7 +350,7 @@ export default function NewChapterPage() {
                   <br/>السعر: $0.25/مليون توكن إدخال • $1.25/مليون توكن إخراج
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={handleConvert}
+                  <button onClick={() => handleConvert()}
                           className="flex-1 py-3 rounded-xl text-white font-bold text-sm shadow"
                           style={{ background: 'linear-gradient(90deg, #0e7a3e, #16a34a)' }}>
                     ✅ تأكيد وإرسال لـ Claude
