@@ -85,8 +85,8 @@ export default function NewChapterPage() {
       mdContent = d.markdown
     }
 
-    // Store in module-level var (100% reliable, no timing issues)
-    _mdContent = mdContent
+    // Store in sessionStorage for reliable cross-render access
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('harvest_md', mdContent)
     mdRef.current = mdContent
     setMarkdown(mdContent)
     setTokenEstimate(estimateTokens(mdContent))
@@ -95,8 +95,8 @@ export default function NewChapterPage() {
   }
 
   // ── Extract: send to Claude ──────────────────────────────
-  async function handleConvert() {
-    const mdContent = _mdContent
+  async function handleConvert(mdContentParam?: string) {
+    const mdContent = mdContentParam || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('harvest_md') || '' : '')
     if (!mdContent) { setError('الملف غير جاهز، أعد رفعه'); setLoading(false); return }
     setLoading(true); setError('')
     setShowConfirm(false)
@@ -352,7 +352,7 @@ export default function NewChapterPage() {
                   <br/>السعر: $0.25/مليون توكن إدخال • $1.25/مليون توكن إخراج
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={handleConvert}
+                  <button onClick={() => handleConvert(markdown)}
                           className="flex-1 py-3 rounded-xl text-white font-bold text-sm shadow"
                           style={{ background: 'linear-gradient(90deg, #0e7a3e, #16a34a)' }}>
                     ✅ تأكيد وإرسال لـ Claude
