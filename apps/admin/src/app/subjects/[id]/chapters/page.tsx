@@ -97,10 +97,16 @@ export default function ChaptersPage() {
             {subject?.icon} {subject?.name} — الفصول
           </h1>
         </div>
-        <button onClick={openAdd}
-                className="bg-yellow-500 hover:bg-yellow-400 text-white font-bold px-4 py-2 rounded-lg text-sm">
-          ➕ فصل جديد
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => router.push(`/subjects/${subjectId}/chapters/new`)}
+                  className="bg-green-600 hover:bg-green-500 text-white font-bold px-4 py-2 rounded-lg text-sm">
+            🤖 إضافة بالذكاء الاصطناعي
+          </button>
+          <button onClick={openAdd}
+                  className="bg-yellow-500 hover:bg-yellow-400 text-white font-bold px-4 py-2 rounded-lg text-sm">
+            ➕ فصل يدوي
+          </button>
+        </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8">
