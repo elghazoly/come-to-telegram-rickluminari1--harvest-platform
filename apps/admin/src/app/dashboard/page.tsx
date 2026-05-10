@@ -68,10 +68,11 @@ export default function DashboardPage() {
         </div>
         <nav className="flex gap-2">
           {[
-            { label: '📚 المواد',    href: '/subjects' },
-            { label: '👥 المستخدمون', href: '/users' },
-            { label: '🗂️ الميديا',   href: '/media' },
-            { label: '⚙️ الإعدادات',  href: '/settings' },
+            { label: '📚 المواد',      href: '/subjects' },
+            { label: '👥 المستخدمون',  href: '/users' },
+            { label: '👨‍🏫 التعيينات',  href: '/assignments' },
+            { label: '🗂️ الميديا',    href: '/media' },
+            { label: '⚙️ الإعدادات',   href: '/settings' },
           ].map(item => (
             <a key={item.href} href={item.href}
                className="px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors">
@@ -104,12 +105,11 @@ export default function DashboardPage() {
         <h2 className="text-xl font-bold text-slate-700 mb-4">إجراءات سريعة</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'إضافة مادة جديدة',   href: '/subjects',  icon: '➕' },
-            { label: 'إضافة معلم',          href: '/users',     icon: '👨‍🏫' },
-            { label: 'إدارة الفيديوهات',    href: '/media',     icon: '🎬' },
-            { label: 'إدارة الصور',          href: '/media',     icon: '🖼️' },
-            { label: 'الاشتراكات',           href: '/enrollments', icon: '📋' },
-            { label: 'تقارير الطلاب',        href: '/reports',   icon: '📊' },
+            { label: 'إضافة مادة جديدة',   href: '/subjects',    icon: '➕' },
+            { label: 'إضافة معلم',          href: '/users',       icon: '👨‍🏫' },
+            { label: 'تعيين معلمين للمواد', href: '/assignments', icon: '📋' },
+            { label: 'إدارة الميديا',        href: '/media',       icon: '🗂️' },
+            { label: 'تقارير الطلاب',        href: '/reports',     icon: '📊' },
           ].map(action => (
             <a key={action.href} href={action.href}
                className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all flex items-center gap-3">
