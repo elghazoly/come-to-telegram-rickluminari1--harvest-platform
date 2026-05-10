@@ -35,6 +35,9 @@ export default function NewChapterPage() {
   const [loadingMsg,  setLoadingMsg]  = useState('')
   const [error,       setError]       = useState('')
   const [savedCount,  setSavedCount]  = useState(0)
+  const [tokenEstimate, setTokenEstimate] = useState<{input: number; output: number; cost: number} | null>(null)
+  const [showConfirm,   setShowConfirm]   = useState(false)
+  const [mdReady,       setMdReady]       = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const supabase = createClient(
@@ -42,21 +45,30 @@ export default function NewChapterPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // ── Step 1: Convert PDF or read MD ─────────────────────
-  async function handleConvert() {
+  // ── Token estimation ────────────────────────────────────
+  function estimateTokens(text: string) {
+    // ~1 token per 3 Arabic chars, ~1 token per 4 English chars
+    const arabicChars   = (text.match(/[؀-ۿ]/g) || []).length
+    const otherChars    = text.length - arabicChars
+    const inputTokens   = Math.ceil(arabicChars / 3 + otherChars / 4) + 500 // +500 for system prompt
+    const outputTokens  = Math.ceil(inputTokens * 0.6) // estimated output
+    const costPerMInput  = 0.00025  // claude-haiku-4-5: $0.25 per 1M input tokens
+    const costPerMOutput = 0.00125  // claude-haiku-4-5: $1.25 per 1M output tokens
+    const cost = (inputTokens / 1_000_000 * costPerMInput) + (outputTokens / 1_000_000 * costPerMOutput)
+    return { input: inputTokens, output: outputTokens, cost }
+  }
+
+  // ── Step 0: Prepare file and show token estimate ─────────
+  async function handlePrepare() {
     if (!pdfFile) { setError(`اختر ملف ${fileType === 'pdf' ? 'PDF' : 'Markdown'} أولاً`); return }
     if (!chapterName.trim()) { setError('أدخل اسم الفصل'); return }
     setLoading(true); setError('')
 
     let mdContent = ''
-
     if (fileType === 'md') {
-      // Read MD file directly
       setLoadingMsg('جاري قراءة الملف...')
       mdContent = await pdfFile.text()
-      setMarkdown(mdContent)
     } else {
-      // Convert PDF to Markdown
       setLoadingMsg('جاري تحويل PDF إلى Markdown...')
       const fd = new FormData()
       fd.append('file', pdfFile)
@@ -67,9 +79,23 @@ export default function NewChapterPage() {
         setLoading(false); return
       }
       mdContent = d.markdown
-      setMarkdown(mdContent)
     }
 
+    setMdReady(mdContent)
+    setMarkdown(mdContent)
+    const est = estimateTokens(mdContent)
+    setTokenEstimate(est)
+    setShowConfirm(true)
+    setLoading(false)
+  }
+
+  // ── Step 1: Extract questions from prepared MD ──────────
+  async function handleConvert() {
+    if (!pdfFile) { setError(`اختر ملف ${fileType === 'pdf' ? 'PDF' : 'Markdown'} أولاً`); return }
+    if (!chapterName.trim()) { setError('أدخل اسم الفصل'); return }
+    setLoading(true); setError('')
+    setShowConfirm(false)
+    const mdContent = mdReady
     setLoadingMsg('جاري تحليل الأسئلة بالذكاء الاصطناعي...')
 
     // ── Step 2: Extract questions ────────────────────────
@@ -292,10 +318,47 @@ export default function NewChapterPage() {
               ) : (
                 <>
                   <span>🤖</span>
-                  <span>تحويل واستخراج الأسئلة</span>
+                  <span>تحليل الملف وتقدير التكلفة</span>
                 </>
               )}
             </button>
+
+            {/* Token estimate confirmation */}
+            {showConfirm && tokenEstimate && (
+              <div className="bg-white rounded-2xl border-2 border-blue-200 p-5 shadow-lg">
+                <h3 className="font-bold text-slate-800 mb-4 text-center">
+                  📊 تقدير التكلفة قبل الإرسال لـ Claude
+                </h3>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {[
+                    { label: 'توكن الإدخال',  value: tokenEstimate.input.toLocaleString(),  color: '#1a4fa8', icon: '📥' },
+                    { label: 'توكن الإخراج',  value: tokenEstimate.output.toLocaleString(), color: '#6d28d9', icon: '📤' },
+                    { label: 'التكلفة التقديرية', value: `$${tokenEstimate.cost.toFixed(4)}`, color: '#0e7a3e', icon: '💰' },
+                  ].map(s => (
+                    <div key={s.label} className="text-center bg-slate-50 rounded-xl p-3 border border-slate-100">
+                      <div className="text-xl mb-1">{s.icon}</div>
+                      <div className="font-black text-lg" style={{ color: s.color }}>{s.value}</div>
+                      <div className="text-slate-400 text-xs mt-0.5">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-blue-50 rounded-xl px-4 py-2 text-xs text-blue-700 mb-4 text-center">
+                  ℹ️ الأرقام تقديرية — الموديل المستخدم: <strong>claude-haiku-4-5</strong>
+                  <br/>السعر: $0.25/مليون توكن إدخال • $1.25/مليون توكن إخراج
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={handleConvert}
+                          className="flex-1 py-3 rounded-xl text-white font-bold text-sm shadow"
+                          style={{ background: 'linear-gradient(90deg, #0e7a3e, #16a34a)' }}>
+                    ✅ تأكيد وإرسال لـ Claude
+                  </button>
+                  <button onClick={() => setShowConfirm(false)}
+                          className="px-5 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
