@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter, useParams } from 'next/navigation'
 
@@ -39,6 +39,7 @@ export default function NewChapterPage() {
   const [showConfirm,   setShowConfirm]   = useState(false)
   const [mdReady,       setMdReady]       = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const mdRef   = useRef<string>('')
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -81,6 +82,7 @@ export default function NewChapterPage() {
       mdContent = d.markdown
     }
 
+    mdRef.current = mdContent
     setMdReady(mdContent)
     setMarkdown(mdContent)
     const est = estimateTokens(mdContent)
@@ -95,8 +97,8 @@ export default function NewChapterPage() {
     setLoading(true); setError('')
     setShowConfirm(false)
 
-    // mdReady is set by handlePrepare — use it directly
-    const mdContent = mdReady
+    // Use ref for immediate access (avoids React state timing issues)
+    const mdContent = mdRef.current
     if (!mdContent) { setError('الملف غير جاهز، أعد رفعه'); setLoading(false); return }
 
     setLoadingMsg('جاري تحليل الأسئلة بالذكاء الاصطناعي...')
