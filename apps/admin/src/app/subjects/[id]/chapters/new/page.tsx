@@ -27,6 +27,7 @@ export default function NewChapterPage() {
   const [chapterName, setChapterName] = useState('')
   const [chapterIcon, setChapterIcon] = useState('')
   const [rules,       setRules]       = useState('')
+  const [fileType,    setFileType]    = useState<'pdf'|'md'>('pdf')
   const [pdfFile,     setPdfFile]     = useState<File | null>(null)
   const [markdown,    setMarkdown]    = useState('')
   const [questions,   setQuestions]   = useState<ExtractedQuestion[]>([])
@@ -41,32 +42,41 @@ export default function NewChapterPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // ── Step 1: Convert PDF ──────────────────────────────────
+  // ── Step 1: Convert PDF or read MD ─────────────────────
   async function handleConvert() {
-    if (!pdfFile) { setError('اختر ملف PDF أولاً'); return }
+    if (!pdfFile) { setError(`اختر ملف ${fileType === 'pdf' ? 'PDF' : 'Markdown'} أولاً`); return }
     if (!chapterName.trim()) { setError('أدخل اسم الفصل'); return }
     setLoading(true); setError('')
-    setLoadingMsg('جاري تحويل PDF إلى Markdown...')
 
-    const fd = new FormData()
-    fd.append('file', pdfFile)
+    let mdContent = ''
 
-    const r = await fetch('/api/pdf-to-md', { method: 'POST', body: fd })
-    const d = await r.json()
-
-    if (!r.ok || d.error) {
-      setError('فشل تحويل PDF: ' + (d.error || ''))
-      setLoading(false); return
+    if (fileType === 'md') {
+      // Read MD file directly
+      setLoadingMsg('جاري قراءة الملف...')
+      mdContent = await pdfFile.text()
+      setMarkdown(mdContent)
+    } else {
+      // Convert PDF to Markdown
+      setLoadingMsg('جاري تحويل PDF إلى Markdown...')
+      const fd = new FormData()
+      fd.append('file', pdfFile)
+      const r = await fetch('/api/pdf-to-md', { method: 'POST', body: fd })
+      const d = await r.json()
+      if (!r.ok || d.error) {
+        setError('فشل تحويل PDF: ' + (d.error || ''))
+        setLoading(false); return
+      }
+      mdContent = d.markdown
+      setMarkdown(mdContent)
     }
 
-    setMarkdown(d.markdown)
     setLoadingMsg('جاري تحليل الأسئلة بالذكاء الاصطناعي...')
 
     // ── Step 2: Extract questions ────────────────────────
     const r2 = await fetch('/api/extract-questions', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ markdown: d.markdown, rules, chapterId: 'temp' })
+      body:    JSON.stringify({ markdown: mdContent, rules, chapterId: 'temp' })
     })
     const d2 = await r2.json()
 
@@ -199,19 +209,52 @@ export default function NewChapterPage() {
             {/* PDF Upload */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <h2 className="font-bold text-slate-800 mb-4">📄 ملف الأسئلة (PDF)</h2>
-              <label className={`flex flex-col items-center justify-center h-40 border-2 border-dashed rounded-2xl cursor-pointer transition-colors ${
-                pdfFile ? 'border-green-400 bg-green-50' : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50'
+              {/* File type selector */}
+              <div className="flex gap-2 mb-3">
+                <button type="button"
+                        onClick={() => { setFileType('pdf'); setPdfFile(null); setError('') }}
+                        className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors border-2 ${
+                          fileType === 'pdf'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                        }`}>
+                  📄 PDF
+                </button>
+                <button type="button"
+                        onClick={() => { setFileType('md'); setPdfFile(null); setError('') }}
+                        className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors border-2 ${
+                          fileType === 'md'
+                            ? 'border-purple-500 bg-purple-50 text-purple-700'
+                            : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                        }`}>
+                  📝 Markdown
+                </button>
+              </div>
+
+              <label className={`flex flex-col items-center justify-center h-36 border-2 border-dashed rounded-2xl cursor-pointer transition-colors ${
+                pdfFile
+                  ? 'border-green-400 bg-green-50'
+                  : fileType === 'pdf'
+                    ? 'border-slate-200 hover:border-blue-300 hover:bg-blue-50'
+                    : 'border-slate-200 hover:border-purple-300 hover:bg-purple-50'
               }`}>
-                <span className="text-4xl mb-2">{pdfFile ? '✅' : '📄'}</span>
+                <span className="text-4xl mb-2">
+                  {pdfFile ? '✅' : fileType === 'pdf' ? '📄' : '📝'}
+                </span>
                 <span className="font-semibold text-slate-700">
-                  {pdfFile ? pdfFile.name : 'اضغط لرفع ملف PDF'}
+                  {pdfFile ? pdfFile.name : fileType === 'pdf' ? 'اضغط لرفع ملف PDF' : 'اضغط لرفع ملف Markdown'}
                 </span>
                 {pdfFile && (
                   <span className="text-slate-400 text-xs mt-1">
-                    {(pdfFile.size / 1024 / 1024).toFixed(1)} MB
+                    {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
                   </span>
                 )}
-                <input ref={fileRef} type="file" accept=".pdf,application/pdf" className="hidden"
+                <span className="text-slate-400 text-xs mt-1">
+                  {fileType === 'pdf' ? '.pdf' : '.md, .txt'}
+                </span>
+                <input ref={fileRef} type="file"
+                       accept={fileType === 'pdf' ? '.pdf,application/pdf' : '.md,.txt,text/markdown,text/plain'}
+                       className="hidden"
                        onChange={e => { setPdfFile(e.target.files?.[0] || null); setError('') }}/>
               </label>
             </div>
