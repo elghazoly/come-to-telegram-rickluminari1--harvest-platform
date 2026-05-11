@@ -37,7 +37,7 @@ export default function ChaptersPage() {
 
   function openAdd() {
     setEditItem(null)
-    setForm({ name: '', icon: '' })
+    setForm({ name: '', icon: '', chapter_type: 'lesson', timer_enabled: false, timer_duration: 1800 })
     setError('')
     setShowForm(true)
   }
