@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 
@@ -9,26 +9,57 @@ type Question    = { id: string; num: number; text: string; year: number | null;
 type Chapter     = { id: string; name: string; icon: string | null; order_num: number; questions: Question[] }
 type Subject     = { id: string; name: string; icon: string | null; chapters: Chapter[] }
 type ChatMsg     = { role: 'user' | 'assistant'; content: string }
+type PlatformSettings = { CONTACT_EMAIL?: string; CONTACT_WHATSAPP?: string; CONTACT_WEBSITE?: string; PLATFORM_NAME?: string; LOGO_URL?: string }
 
-const LOGO_URL = 'https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195'
+const DEFAULT_LOGO = 'https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195'
+
+// ── Timer component ───────────────────────────────────────────
+function Timer({ seconds, onEnd }: { seconds: number; onEnd: () => void }) {
+  const [left, setLeft] = useState(seconds)
+  const ref = useRef<NodeJS.Timeout>()
+  useEffect(() => {
+    ref.current = setInterval(() => {
+      setLeft(l => { if (l <= 1) { clearInterval(ref.current); onEnd(); return 0 } return l - 1 })
+    }, 1000)
+    return () => clearInterval(ref.current)
+  }, [])
+  const pct = (left / seconds) * 100
+  const color = pct > 50 ? '#16a34a' : pct > 20 ? '#d97706' : '#dc2626'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-24 bg-slate-200 rounded-full h-2">
+        <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: color }}/>
+      </div>
+      <span className="text-xs font-bold tabular-nums" style={{ color }}>
+        {Math.floor(left/60).toString().padStart(2,'0')}:{(left%60).toString().padStart(2,'0')}
+      </span>
+    </div>
+  )
+}
 
 export default function StudentDashboard() {
   const router = useRouter()
   const [subjects,       setSubjects]       = useState<Subject[]>([])
   const [profile,        setProfile]        = useState<{ full_name: string; id: string } | null>(null)
   const [loading,        setLoading]        = useState(true)
+  const [settings,       setSettings]       = useState<PlatformSettings>({})
   const [activeSubject,  setActiveSubject]  = useState('')
   const [activeChapter,  setActiveChapter]  = useState('')
   const [yearFilter,     setYearFilter]     = useState('all')
   const [answers,        setAnswers]        = useState<Record<string, { optionId: string; correct: boolean }>>({})
   const [revealedVideos, setRevealedVideos] = useState<Record<string, boolean>>({})
   const [revealedAns,    setRevealedAns]    = useState<Record<string, boolean>>({})
-  const [revealedHint,   setRevealedHint]   = useState<Record<string, boolean>>({})
+  const [hints,          setHints]          = useState<Record<string, string>>({})
+  const [hintLoading,    setHintLoading]    = useState<string | null>(null)
   const [aiOpen,         setAiOpen]         = useState<string | null>(null)
   const [aiChats,        setAiChats]        = useState<Record<string, ChatMsg[]>>({})
   const [aiInput,        setAiInput]        = useState('')
   const [aiLoading,      setAiLoading]      = useState(false)
   const [contactOpen,    setContactOpen]    = useState(false)
+  const [timerEnabled,   setTimerEnabled]   = useState(false)
+  const [timerSecs,      setTimerSecs]      = useState(60)
+  const [timerActive,    setTimerActive]    = useState<string | null>(null)
+  const [showResults,    setShowResults]    = useState(false)
   const aiEndRef = useRef<HTMLDivElement>(null)
 
   const supabase = createClient(
@@ -38,8 +69,13 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const [{ data: { user } }, settingsRes] = await Promise.all([
+        supabase.auth.getUser(),
+        fetch('/api/settings').then(r => r.json()).catch(() => ({}))
+      ])
       if (!user) { router.push('/login'); return }
+      setSettings(settingsRes)
+
       const { data: prof } = await supabase.from('profiles').select('id, full_name, role').eq('id', user.id).single()
       setProfile(prof)
 
@@ -88,6 +124,7 @@ export default function StudentDashboard() {
     if (answers[q.id]) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    setTimerActive(null)
     const newAnswers = { ...answers, [q.id]: { optionId: option.id, correct: option.is_correct } }
     setAnswers(newAnswers)
     await supabase.from('student_answers').upsert({
@@ -103,14 +140,36 @@ export default function StudentDashboard() {
       student_id: user.id, chapter_id: activeChapter,
       total_q: totalQ, correct_q: correctQ, last_activity: new Date().toISOString(),
     })
+    // Auto-send answer context to AI
+    if (aiOpen === q.id) {
+      const correct = option.is_correct
+      const correctOpt = q.options.find(o => o.is_correct)
+      const autoMsg = correct
+        ? `أجبت صح! الإجابة هي ${correctOpt?.letter}: ${correctOpt?.text}`
+        : `اخترت ${option.letter} وهي خطأ. الإجابة الصحيحة هي ${correctOpt?.letter}: ${correctOpt?.text}. اشرح لي لماذا.`
+      const history = aiChats[q.id] || []
+      setAiChats(prev => ({ ...prev, [q.id]: [...history, { role: 'user', content: autoMsg }] }))
+      sendAiMessageDirect(q, autoMsg, history)
+    }
   }
 
-  async function sendAiMessage(q: Question) {
-    if (!aiInput.trim() || aiLoading) return
-    const msg = aiInput.trim(); setAiInput('')
-    const history = aiChats[q.id] || []
-    const newHistory: ChatMsg[] = [...history, { role: 'user', content: msg }]
-    setAiChats(prev => ({ ...prev, [q.id]: newHistory }))
+  async function getSmartHint(q: Question) {
+    if (hints[q.id] || hintLoading) return
+    setHintLoading(q.id)
+    const r = await fetch('/api/ai-assistant', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: q.text, options: q.options, ans_text: q.ans_text,
+        user_message: 'أعطني تلميحاً واحداً مختصراً جداً (جملة واحدة) يساعدني على الإجابة بدون أن تذكر الإجابة مباشرة.',
+        history: []
+      })
+    })
+    const d = await r.json()
+    setHints(h => ({ ...h, [q.id]: d.reply }))
+    setHintLoading(null)
+  }
+
+  async function sendAiMessageDirect(q: Question, msg: string, history: ChatMsg[]) {
     setAiLoading(true)
     const r = await fetch('/api/ai-assistant', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -121,62 +180,108 @@ export default function StudentDashboard() {
       })
     })
     const d = await r.json()
-    setAiChats(prev => ({ ...prev, [q.id]: [...newHistory, { role: 'assistant', content: d.reply }] }))
+    setAiChats(prev => ({ ...prev, [q.id]: [...(prev[q.id] || []), { role: 'assistant', content: d.reply }] }))
     setAiLoading(false)
   }
 
+  async function sendAiMessage(q: Question) {
+    if (!aiInput.trim() || aiLoading) return
+    const msg = aiInput.trim(); setAiInput('')
+    const history = aiChats[q.id] || []
+    const newHistory: ChatMsg[] = [...history, { role: 'user', content: msg }]
+    setAiChats(prev => ({ ...prev, [q.id]: newHistory }))
+    sendAiMessageDirect(q, msg, history)
+  }
+
   function switchSubject(sid: string) {
-    setActiveSubject(sid); setYearFilter('all')
+    setActiveSubject(sid); setYearFilter('all'); setShowResults(false)
     const sub = subjects.find(s => s.id === sid)
     if (sub?.chapters.length) setActiveChapter(sub.chapters[0].id)
   }
 
   const currentSubject   = subjects.find(s => s.id === activeSubject)
   const currentChapter   = currentSubject?.chapters.find(c => c.id === activeChapter)
-  const availableYears   = [...new Set((currentChapter?.questions || []).filter(q => q.year).map(q => String(q.year)))].sort((a,b) => parseInt(b)-parseInt(a))
-  const currentQuestions = (currentChapter?.questions || []).filter(q => yearFilter === 'all' || String(q.year) === yearFilter)
+  const allQuestions     = currentChapter?.questions || []
+  const currentQuestions = allQuestions.filter(q => yearFilter === 'all' || String(q.year) === yearFilter)
+  const availableYears   = [...new Set(allQuestions.filter(q => q.year).map(q => String(q.year)))].sort((a,b) => parseInt(b)-parseInt(a))
   const chapterAnswered  = currentQuestions.filter(q => answers[q.id]).length
   const chapterCorrect   = currentQuestions.filter(q => answers[q.id]?.correct).length
   const progress         = currentQuestions.length ? Math.round(chapterAnswered / currentQuestions.length * 100) : 0
 
+  // Level detection
+  function getLevel() {
+    if (chapterAnswered < 3) return { label: 'جاري التقييم...', color: '#64748b', icon: '📊' }
+    const pct = chapterCorrect / chapterAnswered
+    if (pct >= 0.9) return { label: 'ممتاز 🌟', color: '#16a34a', icon: '🏆' }
+    if (pct >= 0.7) return { label: 'جيد جداً', color: '#1a4fa8', icon: '⭐' }
+    if (pct >= 0.5) return { label: 'جيد',      color: '#d97706', icon: '📈' }
+    return { label: 'يحتاج مراجعة', color: '#dc2626', icon: '📚' }
+  }
+  const level = getLevel()
+
   async function handleSignOut() { await supabase.auth.signOut(); router.push('/login') }
+
+  const logoUrl = settings.LOGO_URL || DEFAULT_LOGO
+  const platformName = settings.PLATFORM_NAME || 'هارفست'
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col" dir="rtl">
 
       {/* ══════════ HEADER ══════════ */}
-      <header className="text-white shadow-xl flex-shrink-0" style={{ background: 'linear-gradient(135deg, #0a2d6e 0%, #1a4fa8 100%)' }}>
+      <header className="flex-shrink-0 shadow-xl" style={{ background: 'linear-gradient(135deg, #071d4a 0%, #0a2d6e 50%, #1a4fa8 100%)' }}>
+        {/* Top bar */}
         <div className="px-5 py-3 flex items-center justify-between border-b border-white/10">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <img src={LOGO_URL} alt="هارفست" className="h-9 object-contain" onError={e => { (e.target as HTMLImageElement).style.display='none' }}/>
-            <div className="border-r border-white/20 pr-3">
+          <div className="flex items-center gap-4">
+            <img src={logoUrl} alt={platformName} className="h-10 object-contain drop-shadow-sm"
+                 onError={e => { (e.target as HTMLImageElement).style.display='none' }}/>
+            <div className="h-8 w-px bg-white/20"/>
+            <div>
               <p className="text-blue-200 text-xs leading-none">مرحباً،</p>
-              <p className="font-bold text-sm">{profile?.full_name || '...'}</p>
+              <p className="font-bold text-white">{profile?.full_name || '...'}</p>
             </div>
           </div>
-
-          {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* Level badge */}
+            {chapterAnswered >= 3 && (
+              <div className="hidden md:flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-xl text-xs font-bold text-white">
+                {level.icon} {level.label}
+              </div>
+            )}
+            {/* Timer toggle */}
+            <button onClick={() => setTimerEnabled(t => !t)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                      timerEnabled ? 'bg-orange-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
+                    }`}>
+              ⏱️ تايمر
+            </button>
+            {timerEnabled && (
+              <select value={timerSecs} onChange={e => setTimerSecs(parseInt(e.target.value))}
+                      className="bg-white/10 text-white text-xs rounded-xl px-2 py-1.5 border-0 focus:outline-none">
+                {[30,60,90,120].map(s => <option key={s} value={s} className="text-slate-800">{s}s</option>)}
+              </select>
+            )}
+            <button onClick={() => setShowResults(r => !r)}
+                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
+              📊 النتائج
+            </button>
             <button onClick={() => setContactOpen(true)}
-                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors">
-              💬 تواصل معنا
+                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
+              💬 تواصل
             </button>
             <button onClick={handleSignOut}
-                    className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors">
+                    className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/40 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
               خروج
             </button>
           </div>
         </div>
-
         {/* Subject tabs */}
         {subjects.length > 0 && (
-          <div className="flex gap-1 px-4 pt-2 overflow-x-auto">
+          <div className="flex gap-0.5 px-4 pt-2 overflow-x-auto">
             {subjects.map(s => (
               <button key={s.id} onClick={() => switchSubject(s.id)}
-                      className={`px-4 py-2 text-sm font-bold rounded-t-xl whitespace-nowrap flex-shrink-0 transition-all ${
+                      className={`px-5 py-2.5 text-sm font-bold rounded-t-xl whitespace-nowrap flex-shrink-0 transition-all ${
                         activeSubject === s.id
-                          ? 'bg-white text-blue-800 shadow-sm'
+                          ? 'bg-white text-blue-900 shadow-sm'
                           : 'text-blue-200 hover:text-white hover:bg-white/10'
                       }`}>
                 {s.icon} {s.name}
@@ -188,68 +293,118 @@ export default function StudentDashboard() {
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <img src={LOGO_URL} alt="" className="h-16 mx-auto mb-4 opacity-50"/>
-            <p className="text-slate-400">⏳ جاري التحميل...</p>
+          <div className="text-center space-y-4">
+            <img src={logoUrl} alt="" className="h-16 mx-auto opacity-40"/>
+            <div className="flex gap-1 justify-center">
+              {[0,1,2].map(i => (
+                <div key={i} className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: `${i*0.15}s` }}/>
+              ))}
+            </div>
           </div>
         </div>
       ) : subjects.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-          <img src={LOGO_URL} alt="" className="h-20 mx-auto mb-6 opacity-60"/>
-          <p className="text-slate-500 font-medium text-lg">لم يتم تسجيلك في أي مادة بعد</p>
+          <img src={logoUrl} alt="" className="h-20 mx-auto mb-6 opacity-50"/>
+          <p className="text-slate-500 font-semibold text-lg">لم يتم تسجيلك في أي مادة بعد</p>
           <p className="text-slate-400 text-sm mt-2">تواصل مع الإدارة للتسجيل</p>
+          <button onClick={() => setContactOpen(true)}
+                  className="mt-4 bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-600">
+            💬 تواصل مع الإدارة
+          </button>
         </div>
       ) : (
         <div className="flex flex-1 overflow-hidden">
 
-          {/* ══════ Chapter sidebar ══════ */}
+          {/* ══════ Sidebar ══════ */}
           <aside className="w-52 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 overflow-y-auto shadow-sm">
-            <div className="px-3 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50">
-              📂 الفصول
+            <div className="px-3 py-2.5 bg-slate-50 border-b border-slate-100">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">الفصول</p>
             </div>
             {(currentSubject?.chapters || []).map(c => {
-              const cQ  = c.questions.length
-              const cA  = c.questions.filter(q => answers[q.id]).length
-              const cP  = cQ ? Math.round(cA / cQ * 100) : 0
+              const cQ = c.questions.length
+              const cA = c.questions.filter(q => answers[q.id]).length
+              const cC = c.questions.filter(q => answers[q.id]?.correct).length
+              const cP = cQ ? Math.round(cA / cQ * 100) : 0
               const isA = activeChapter === c.id
               return (
-                <button key={c.id} onClick={() => { setActiveChapter(c.id); setYearFilter('all') }}
+                <button key={c.id} onClick={() => { setActiveChapter(c.id); setYearFilter('all'); setShowResults(false) }}
                         className={`w-full text-right px-3 py-3 border-b border-slate-50 transition-all ${
                           isA ? 'bg-blue-700 text-white' : 'text-slate-700 hover:bg-blue-50'
                         }`}>
                   <div className="font-semibold text-sm">{c.icon} {c.name}</div>
-                  <div className={`text-xs mt-1 ${isA ? 'text-blue-200' : 'text-slate-400'}`}>
-                    {cA}/{cQ} سؤال • {cP}%
+                  <div className={`text-xs mt-0.5 ${isA ? 'text-blue-200' : 'text-slate-400'}`}>
+                    {cA}/{cQ} • {cP}% {cA > 0 && `(${cC} ✅)`}
                   </div>
-                  <div className={`h-1.5 rounded-full mt-1.5 ${isA ? 'bg-white/20' : 'bg-slate-100'}`}>
+                  <div className={`h-1.5 rounded-full mt-1.5 overflow-hidden ${isA ? 'bg-white/20' : 'bg-slate-100'}`}>
                     <div className="h-full rounded-full transition-all duration-500"
-                         style={{ width: `${cP}%`, background: isA ? 'white' : '#1a4fa8' }}/>
+                         style={{ width: `${cP}%`, background: isA ? 'white' : cP >= 70 ? '#16a34a' : '#1a4fa8' }}/>
                   </div>
                 </button>
               )
             })}
           </aside>
 
-          {/* ══════ Main content ══════ */}
+          {/* ══════ Main ══════ */}
           <main className="flex-1 overflow-y-auto">
-            {/* Sticky bar */}
+
+            {/* Results panel */}
+            {showResults && (
+              <div className="bg-white border-b-2 border-blue-100 px-6 py-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-bold text-slate-800 text-lg">📊 نتائجك</h2>
+                  <button onClick={() => setShowResults(false)} className="text-slate-400 hover:text-slate-600 text-xl">×</button>
+                </div>
+                <div className="grid grid-cols-4 gap-4 mb-4">
+                  {[
+                    { label: 'أجبت',      value: chapterAnswered,                          icon: '📝', color: '#0a2d6e' },
+                    { label: 'صحيح',       value: chapterCorrect,                           icon: '✅', color: '#16a34a' },
+                    { label: 'خطأ',        value: chapterAnswered - chapterCorrect,         icon: '❌', color: '#dc2626' },
+                    { label: 'النسبة',     value: `${chapterAnswered ? Math.round(chapterCorrect/chapterAnswered*100) : 0}%`, icon: '🎯', color: level.color },
+                  ].map(s => (
+                    <div key={s.label} className="text-center bg-slate-50 rounded-xl p-3">
+                      <div className="text-2xl mb-1">{s.icon}</div>
+                      <div className="text-xl font-black" style={{ color: s.color }}>{s.value}</div>
+                      <div className="text-slate-400 text-xs">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3">
+                  <span className="text-2xl">{level.icon}</span>
+                  <div>
+                    <p className="font-bold text-slate-800">مستواك: <span style={{ color: level.color }}>{level.label}</span></p>
+                    <p className="text-xs text-slate-500">
+                      {chapterAnswered < currentQuestions.length
+                        ? `لا يزال ${currentQuestions.length - chapterAnswered} سؤال لم يُجب عليه`
+                        : 'أجبت على جميع الأسئلة! 🎉'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Progress + year filter sticky bar */}
             <div className="bg-white border-b border-slate-200 px-4 py-2.5 sticky top-0 z-10 shadow-sm">
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-700"
-                       style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #0a2d6e, #1a4fa8)' }}/>
+                       style={{ width: `${progress}%`, background: progress >= 70 ? '#16a34a' : 'linear-gradient(90deg, #0a2d6e, #1a4fa8)' }}/>
                 </div>
-                <span className="text-xs font-bold text-slate-600 flex-shrink-0">
+                <span className="text-xs font-bold text-slate-600 flex-shrink-0 flex items-center gap-1">
                   {chapterAnswered}/{currentQuestions.length}
-                  {chapterAnswered > 0 && <span className="text-green-600 mr-1">({chapterCorrect} ✅)</span>}
+                  {chapterAnswered > 0 && <span className="text-green-600">({chapterCorrect}✅)</span>}
                 </span>
+                {chapterAnswered === currentQuestions.length && currentQuestions.length > 0 && (
+                  <span className="text-xs bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">
+                    {level.icon} {level.label}
+                  </span>
+                )}
               </div>
               {availableYears.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap">
                   {(['all', ...availableYears]).map(y => (
                     <button key={y} onClick={() => setYearFilter(y)}
                             className={`px-3 py-0.5 rounded-full text-xs font-bold transition-colors ${
-                              yearFilter === y ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-blue-100'
+                              yearFilter === y ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-blue-50'
                             }`}>
                       {y === 'all' ? 'الكل' : y}
                     </button>
@@ -261,28 +416,40 @@ export default function StudentDashboard() {
             {/* Questions */}
             <div className="p-4 space-y-5">
               {currentQuestions.map(q => {
-                const userAnswer  = answers[q.id]
-                const isAnswered  = !!userAnswer
-                const exp         = q.explanations?.[0]
-                const needsImg    = q.image_url === '__NEEDS_IMAGE__'
-                const chat        = aiChats[q.id] || []
+                const userAnswer = answers[q.id]
+                const isAnswered = !!userAnswer
+                const exp        = q.explanations?.[0]
+                const needsImg   = q.image_url === '__NEEDS_IMAGE__'
+                const chat       = aiChats[q.id] || []
+                const hint       = hints[q.id]
 
                 return (
                   <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-
-                    {/* ── Question ── */}
+                    {/* Question */}
                     <div className="p-5">
-                      <div className="flex items-center gap-2 mb-3 flex-wrap">
-                        <span className="bg-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">س {q.num}</span>
-                        {q.year && <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-lg">{q.year}</span>}
-                        {isAnswered && (
-                          <span className={`text-xs font-bold px-2 py-1 rounded-lg ${userAnswer.correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {userAnswer.correct ? '✅ صحيح' : '❌ خطأ'}
-                          </span>
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="bg-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">س {q.num}</span>
+                          {q.year && <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-lg">{q.year}</span>}
+                          {isAnswered && (
+                            <span className={`text-xs font-bold px-2 py-1 rounded-lg ${userAnswer.correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {userAnswer.correct ? '✅ صحيح' : '❌ خطأ'}
+                            </span>
+                          )}
+                        </div>
+                        {/* Timer */}
+                        {timerEnabled && timerActive === q.id && !isAnswered && (
+                          <Timer seconds={timerSecs} onEnd={() => setTimerActive(null)}/>
+                        )}
+                        {timerEnabled && !isAnswered && timerActive !== q.id && (
+                          <button onClick={() => setTimerActive(q.id)}
+                                  className="text-xs text-orange-600 hover:text-orange-800 font-semibold flex items-center gap-1">
+                            ⏱️ ابدأ التايمر
+                          </button>
                         )}
                       </div>
 
-                      <p className="text-slate-800 font-medium mb-4 leading-relaxed text-[15px]">{q.text}</p>
+                      <p className="text-slate-800 font-medium mb-4 leading-relaxed">{q.text}</p>
 
                       {q.image_url && !needsImg && (
                         <img src={q.image_url} alt="" className="max-h-52 rounded-xl mb-4 object-contain border border-slate-100"/>
@@ -294,14 +461,14 @@ export default function StudentDashboard() {
                       )}
 
                       {/* Options */}
-                      <div className="space-y-2">
+                      <div className="space-y-2 mb-4">
                         {q.options.sort((a,b) => a.order_num-b.order_num).map(opt => {
                           const isSel = userAnswer?.optionId === opt.id
                           let cls = 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
                           if (isAnswered) {
-                            if (opt.is_correct)  cls = 'bg-green-50 border-green-400 text-green-800 font-semibold'
-                            else if (isSel)       cls = 'bg-red-50 border-red-400 text-red-700'
-                            else                  cls = 'bg-slate-50 border-slate-200 text-slate-400 opacity-60'
+                            if (opt.is_correct) cls = 'bg-green-50 border-green-400 text-green-800 font-semibold'
+                            else if (isSel)     cls = 'bg-red-50 border-red-400 text-red-700'
+                            else                cls = 'bg-slate-50 border-slate-100 text-slate-400 opacity-50'
                           }
                           return (
                             <button key={opt.id} onClick={() => handleAnswer(q, opt)} disabled={isAnswered}
@@ -315,67 +482,65 @@ export default function StudentDashboard() {
                         })}
                       </div>
 
-                      {/* ── Action buttons ── */}
-                      <div className="flex gap-2 mt-4 flex-wrap">
-                        {/* Hint */}
-                        <button onClick={() => setRevealedHint(h => ({ ...h, [q.id]: !h[q.id] }))}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors">
-                          💡 {revealedHint[q.id] ? 'إخفاء التلميح' : 'تلميح'}
+                      {/* Action buttons */}
+                      <div className="flex gap-2 flex-wrap">
+                        <button onClick={() => getSmartHint(q)} disabled={hintLoading === q.id}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 disabled:opacity-50">
+                          {hintLoading === q.id ? '⏳' : '💡'} تلميح ذكي
                         </button>
-                        {/* Show answer */}
                         <button onClick={() => setRevealedAns(a => ({ ...a, [q.id]: !a[q.id] }))}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-colors">
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100">
                           🔍 {revealedAns[q.id] ? 'إخفاء الإجابة' : 'عرض الإجابة'}
                         </button>
-                        {/* AI assistant */}
                         <button onClick={() => setAiOpen(aiOpen === q.id ? null : q.id)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 text-xs font-semibold hover:bg-purple-100 transition-colors">
-                          🤖 {aiOpen === q.id ? 'إغلاق المساعد' : 'المساعد الذكي'}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
+                                  aiOpen === q.id
+                                    ? 'border-purple-400 bg-purple-100 text-purple-800'
+                                    : 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100'
+                                }`}>
+                          🤖 المساعد الذكي
                         </button>
-
                       </div>
                     </div>
 
-                    {/* ── Hint panel ── */}
-                    {revealedHint[q.id] && (
-                      <div className="border-t border-amber-100 bg-amber-50 px-5 py-3">
-                        <p className="text-xs font-bold text-amber-700 mb-1">💡 تلميح:</p>
-                        <p className="text-sm text-amber-800">
-                          {q.options.filter(o => o.is_correct).map(o =>
-                            `فكر في الخيار الذي يتعلق بـ "${o.text.substring(0, 20)}..."`
-                          )}
-                        </p>
+                    {/* Smart hint */}
+                    {hint && (
+                      <div className="border-t border-amber-100 bg-gradient-to-r from-amber-50 to-yellow-50 px-5 py-3">
+                        <p className="text-xs font-bold text-amber-700 mb-1">💡 تلميح ذكي:</p>
+                        <p className="text-sm text-amber-800 leading-relaxed">{hint}</p>
                       </div>
                     )}
 
-                    {/* ── Answer panel ── */}
+                    {/* Answer reveal */}
                     {revealedAns[q.id] && (
                       <div className="border-t border-blue-100 bg-blue-50 px-5 py-3">
-                        <p className="text-xs font-bold text-blue-700 mb-1">🔍 الإجابة الصحيحة:</p>
+                        <p className="text-xs font-bold text-blue-700 mb-1.5">🔍 الإجابة الصحيحة:</p>
                         {q.options.filter(o => o.is_correct).map(o => (
-                          <p key={o.id} className="text-sm font-semibold text-blue-800">{o.letter} — {o.text}</p>
+                          <p key={o.id} className="text-sm font-bold text-blue-900">{o.letter} — {o.text}</p>
                         ))}
-                        {q.ans_text && <p className="text-xs text-blue-600 mt-1">💡 {q.ans_text}</p>}
+                        {q.ans_text && <p className="text-xs text-blue-600 mt-1.5 leading-relaxed">💡 {q.ans_text}</p>}
                       </div>
                     )}
 
-                    {/* ── AI Assistant panel ── */}
+                    {/* AI Assistant */}
                     {aiOpen === q.id && (
-                      <div className="border-t border-purple-100 bg-purple-50">
-                        <div className="px-4 py-2 bg-purple-100 flex items-center gap-2 border-b border-purple-200">
+                      <div className="border-t border-purple-100">
+                        <div className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 flex items-center gap-2">
                           <span className="text-lg">🤖</span>
-                          <span className="text-xs font-bold text-purple-800">المساعد الذكي — اسألني عن هذا السؤال</span>
+                          <span className="text-xs font-bold text-white">المساعد الذكي — يشرح ويساعدك على الفهم</span>
                         </div>
-                        <div className="p-3 space-y-2 max-h-52 overflow-y-auto">
+                        <div className="bg-purple-50 p-3 space-y-2 max-h-56 overflow-y-auto">
                           {chat.length === 0 && (
-                            <p className="text-xs text-purple-500 text-center py-2">ابدأ بسؤال... مثل: "اشرح لي الخيارات" أو "أعطني تلميحاً"</p>
+                            <p className="text-xs text-purple-400 text-center py-3">
+                              اختر إجابة وسيشرح لك المساعد، أو اسأل مباشرة...
+                            </p>
                           )}
                           {chat.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`max-w-[80%] px-3 py-2 rounded-xl text-xs leading-relaxed ${
+                              <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
                                 m.role === 'user'
                                   ? 'bg-purple-600 text-white rounded-br-sm'
-                                  : 'bg-white text-slate-700 shadow-sm rounded-bl-sm'
+                                  : 'bg-white text-slate-700 shadow-sm rounded-bl-sm border border-purple-100'
                               }`}>
                                 {m.content}
                               </div>
@@ -383,47 +548,48 @@ export default function StudentDashboard() {
                           ))}
                           {aiLoading && (
                             <div className="flex justify-start">
-                              <div className="bg-white px-3 py-2 rounded-xl text-xs text-slate-400 shadow-sm">⏳ يفكر...</div>
+                              <div className="bg-white px-4 py-2 rounded-2xl text-xs text-slate-400 shadow-sm border border-purple-100 flex gap-1">
+                                <span className="animate-bounce" style={{animationDelay:'0ms'}}>●</span>
+                                <span className="animate-bounce" style={{animationDelay:'150ms'}}>●</span>
+                                <span className="animate-bounce" style={{animationDelay:'300ms'}}>●</span>
+                              </div>
                             </div>
                           )}
                           <div ref={aiEndRef}/>
                         </div>
-                        <div className="px-3 pb-3 flex gap-2">
+                        <div className="px-3 pb-3 pt-2 flex gap-2 bg-purple-50 border-t border-purple-100">
                           <input value={aiInput} onChange={e => setAiInput(e.target.value)}
                                  onKeyDown={e => e.key === 'Enter' && sendAiMessage(q)}
                                  className="flex-1 border border-purple-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-400 bg-white"
-                                 placeholder="اسأل عن السؤال..."/>
+                                 placeholder="اسأل عن السؤال أو اطلب شرحاً..."/>
                           <button onClick={() => sendAiMessage(q)} disabled={aiLoading || !aiInput.trim()}
-                                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-50">
-                            إرسال
+                                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-40">
+                            ↑
                           </button>
                         </div>
                       </div>
                     )}
 
-                    {/* ── Video panel — always visible if video exists ── */}
+                    {/* Video */}
                     {exp?.video_url && (
-                      <div className="border-t border-green-100 bg-green-50">
-                        <div className="px-4 py-2 flex items-center justify-between border-b border-green-200">
-                          <p className="text-xs font-bold text-green-700">🎬 فيديو شرح المعلم</p>
+                      <div className="border-t border-emerald-100 bg-emerald-50">
+                        <div className="px-4 py-2.5 flex items-center justify-between border-b border-emerald-200">
+                          <p className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">🎬 فيديو شرح المعلم</p>
                           <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: !v[q.id] }))}
-                                  className="text-xs text-green-600 hover:text-green-800 font-medium">
-                            {revealedVideos[q.id] ? '▲ إخفاء' : '▼ عرض الفيديو'}
+                                  className="text-xs text-emerald-600 hover:text-emerald-800 font-semibold bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1 rounded-lg transition-colors">
+                            {revealedVideos[q.id] ? '▲ إخفاء' : '▼ مشاهدة'}
                           </button>
                         </div>
                         {revealedVideos[q.id] ? (
                           <div className="p-3">
-                            <video src={exp.video_url} controls autoPlay
-                                   className="w-full rounded-xl bg-black max-h-64"/>
-                            {exp.text_note && (
-                              <p className="text-xs text-green-700 mt-2">✏️ {exp.text_note}</p>
-                            )}
+                            <video src={exp.video_url} controls autoPlay className="w-full rounded-xl bg-black max-h-64"/>
+                            {exp.text_note && <p className="text-xs text-emerald-700 mt-2">✏️ {exp.text_note}</p>}
                           </div>
                         ) : (
                           <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: true }))}
-                                  className="w-full flex items-center justify-center gap-2 py-3 text-sm text-green-700 hover:bg-green-100 transition-colors">
-                            <span className="text-2xl">▶️</span>
-                            <span className="font-semibold">اضغط لمشاهدة شرح المعلم</span>
+                                  className="w-full flex items-center justify-center gap-2 py-3 text-sm text-emerald-700 hover:bg-emerald-100 transition-colors">
+                            <span className="bg-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg">▶</span>
+                            <span className="font-semibold">مشاهدة شرح المعلم</span>
                           </button>
                         )}
                       </div>
@@ -438,26 +604,29 @@ export default function StudentDashboard() {
 
       {/* ══════ Contact Modal ══════ */}
       {contactOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-            <div className="flex items-center justify-between p-5 border-b border-slate-100">
-              <h2 className="font-bold text-slate-800">💬 تواصل معنا</h2>
-              <button onClick={() => setContactOpen(false)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">×</button>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="px-5 py-4 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #0a2d6e, #1a4fa8)' }}>
+              <div className="flex items-center gap-2">
+                <img src={logoUrl} alt="" className="h-7 object-contain"/>
+                <h2 className="font-bold text-white">تواصل معنا</h2>
+              </div>
+              <button onClick={() => setContactOpen(false)} className="text-white/60 hover:text-white text-xl leading-none">×</button>
             </div>
             <div className="p-5 space-y-3">
-              <p className="text-slate-500 text-sm text-center mb-4">اختر طريقة التواصل المناسبة</p>
               {[
-                { icon: '📧', label: 'البريد الإلكتروني', value: 'info@harvste.com', action: () => window.open('mailto:info@harvste.com') },
-                { icon: '💬', label: 'واتساب',            value: 'تواصل عبر واتساب',  action: () => window.open('https://wa.me/966500000000') },
-                { icon: '🌐', label: 'الموقع الرسمي',     value: 'harvste.com',        action: () => window.open('https://www.harvste.com') },
+                { icon: '📧', label: 'البريد الإلكتروني', value: settings.CONTACT_EMAIL || 'info@harvste.com',     action: () => window.open(`mailto:${settings.CONTACT_EMAIL || 'info@harvste.com'}`) },
+                { icon: '💬', label: 'واتساب',            value: 'تواصل عبر واتساب',                                action: () => window.open(`https://wa.me/${settings.CONTACT_WHATSAPP || '966500000000'}`) },
+                { icon: '🌐', label: 'الموقع الرسمي',     value: settings.CONTACT_WEBSITE || 'harvste.com',         action: () => window.open(settings.CONTACT_WEBSITE || 'https://www.harvste.com') },
               ].map(item => (
                 <button key={item.label} onClick={item.action}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-right">
+                        className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-right">
                   <span className="text-2xl">{item.icon}</span>
                   <div>
                     <p className="font-semibold text-slate-800 text-sm">{item.label}</p>
                     <p className="text-slate-400 text-xs">{item.value}</p>
                   </div>
+                  <span className="mr-auto text-slate-300">←</span>
                 </button>
               ))}
             </div>
