@@ -10,7 +10,7 @@ type Chapter     = { id: string; name: string; icon: string | null; order_num: n
 type Subject     = { id: string; name: string; icon: string | null; chapters: Chapter[] }
 type ChatMsg     = { role: 'user' | 'assistant'; content: string }
 
-const LOGO_URL = 'https://www.harvste.com/cdn/shop/files/Logoss.webp?v=1756381661'
+const LOGO_URL = 'https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195'
 
 export default function StudentDashboard() {
   const router = useRouter()
