@@ -332,13 +332,7 @@ export default function StudentDashboard() {
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 text-xs font-semibold hover:bg-purple-100 transition-colors">
                           🤖 {aiOpen === q.id ? 'إغلاق المساعد' : 'المساعد الذكي'}
                         </button>
-                        {/* Video */}
-                        {exp?.video_url && (
-                          <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: !v[q.id] }))}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-green-200 bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors">
-                            🎬 {revealedVideos[q.id] ? 'إخفاء الفيديو' : 'فيديو الشرح'}
-                          </button>
-                        )}
+
                       </div>
                     </div>
 
@@ -407,13 +401,30 @@ export default function StudentDashboard() {
                       </div>
                     )}
 
-                    {/* ── Video panel ── */}
-                    {exp?.video_url && revealedVideos[q.id] && (
-                      <div className="border-t border-green-100 p-3 bg-green-50">
-                        <p className="text-xs font-bold text-green-700 mb-2">🎬 فيديو شرح المعلم:</p>
-                        <video src={exp.video_url} controls className="w-full rounded-xl bg-black max-h-64"/>
-                        {exp.text_note && (
-                          <p className="text-xs text-green-700 mt-2">✏️ {exp.text_note}</p>
+                    {/* ── Video panel — always visible if video exists ── */}
+                    {exp?.video_url && (
+                      <div className="border-t border-green-100 bg-green-50">
+                        <div className="px-4 py-2 flex items-center justify-between border-b border-green-200">
+                          <p className="text-xs font-bold text-green-700">🎬 فيديو شرح المعلم</p>
+                          <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: !v[q.id] }))}
+                                  className="text-xs text-green-600 hover:text-green-800 font-medium">
+                            {revealedVideos[q.id] ? '▲ إخفاء' : '▼ عرض الفيديو'}
+                          </button>
+                        </div>
+                        {revealedVideos[q.id] ? (
+                          <div className="p-3">
+                            <video src={exp.video_url} controls autoPlay
+                                   className="w-full rounded-xl bg-black max-h-64"/>
+                            {exp.text_note && (
+                              <p className="text-xs text-green-700 mt-2">✏️ {exp.text_note}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: true }))}
+                                  className="w-full flex items-center justify-center gap-2 py-3 text-sm text-green-700 hover:bg-green-100 transition-colors">
+                            <span className="text-2xl">▶️</span>
+                            <span className="font-semibold">اضغط لمشاهدة شرح المعلم</span>
+                          </button>
                         )}
                       </div>
                     )}
