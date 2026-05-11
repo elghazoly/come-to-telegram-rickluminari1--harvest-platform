@@ -42,6 +42,7 @@ export default function NewChapterPage() {
   const [sessionUsage,   setSessionUsage]   = useState<{tokens: number; cost: number; count: number}>({ tokens: 0, cost: 0, count: 0 })
   const [showConfirm,   setShowConfirm]   = useState(false)
   const [truncated,     setTruncated]     = useState(false)
+  const [pdfAnalysis,   setPdfAnalysis]   = useState<any>(null)
   const [maxTokens,     setMaxTokens]     = useState(6000)
   const [mdReady,       setMdReady]       = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -407,6 +408,22 @@ export default function NewChapterPage() {
                   )}
                   <br/>$0.25/م توكن إدخال • $1.25/م توكن إخراج
                 </div>
+
+                {/* PDF Analysis Results */}
+                {fileType === 'pdf' && pdfAnalysis && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-3">
+                    <p className="text-xs font-bold text-green-800 mb-2">🔍 تحليل الملف:</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-green-700">
+                      <div>📐 التخطيط: <strong>{pdfAnalysis.layout === 'double' ? 'عمودان' : 'عمود واحد'}</strong></div>
+                      <div>❓ الأسئلة: <strong>~{pdfAnalysis.total_questions}</strong></div>
+                      <div>📋 جدول الإجابات: <strong>{pdfAnalysis.has_answer_table ? '✅ موجود' : '❌ غير موجود'}</strong></div>
+                      {pdfAnalysis.year && <div>📅 السنة: <strong>{pdfAnalysis.year}</strong></div>}
+                      <div className="col-span-2">📚 الموضوع: <strong>{pdfAnalysis.subject}</strong></div>
+                      {pdfAnalysis.notes && <div className="col-span-2 text-orange-600">⚠️ {pdfAnalysis.notes}</div>}
+                      {pdfAnalysis.answer_table_format && <div className="col-span-2">📊 الإجابات: {pdfAnalysis.answer_table_format}</div>}
+                    </div>
+                  </div>
+                )}
 
                 {/* Max tokens selector */}
                 <div className="bg-slate-50 rounded-xl p-3 mb-4">
