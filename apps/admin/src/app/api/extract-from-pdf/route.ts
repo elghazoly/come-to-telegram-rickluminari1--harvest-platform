@@ -8,7 +8,7 @@ const LETTER_MAP: Record<string, string> = { A: 'أ', B: 'ب', C: 'ج', D: 'د' 
 const SYSTEM_PROMPT = `أنت متخصص في استخراج أسئلة الاختيار من متعدد من صفحات PDF العربية.
 مهمتك الوحيدة: إرجاع JSON صالح بدون أي نص إضافي أو backticks.`
 
-function buildPrompt(rules?: string): string {
+function buildPrompt(rules?: string, analysis?: any): string {
   const rulesSection = rules ? `5. **شروط المستخدم**:\n${rules}\n\n` : ''
 
   return [
@@ -16,7 +16,9 @@ function buildPrompt(rules?: string): string {
     '',
     '## قواعد صارمة لقراءة الملفات العربية:',
     '',
-    '1. **اتجاه القراءة**: الملف عربي — اقرأ من اليمين لليسار دائماً.',
+    analysis?.language === 'english'
+      ? '1. **اتجاه القراءة**: الملف إنجليزي — اقرأ من اليسار لليمين.'
+      : '1. **اتجاه القراءة**: الملف عربي — اقرأ من اليمين لليسار دائماً.',
     '   - إذا كانت الصفحة بعمودين: ابدأ بالعمود الأيمن ثم الأيسر.',
     '   - رقّم الأسئلة بالتسلسل الصحيح حسب رقمها المكتوب في الملف.',
     '',
@@ -43,6 +45,8 @@ export async function POST(req: NextRequest) {
     const file      = formData.get('file') as File
     const rules     = (formData.get('rules') as string) || ''
     const maxTokens = parseInt((formData.get('maxTokens') as string) || '6000')
+    const analysisRaw = formData.get('analysis') as string
+    const analysis  = analysisRaw ? JSON.parse(analysisRaw) : null
 
     if (!file) return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
 
@@ -65,7 +69,7 @@ export async function POST(req: NextRequest) {
           } as any,
           {
             type: 'text',
-            text: buildPrompt(rules),
+            text: buildPrompt(rules, analysis),
           }
         ]
       }]

@@ -119,6 +119,7 @@ export default function NewChapterPage() {
       fd.append('file', pdfFile)
       fd.append('rules', rules)
       fd.append('maxTokens', String(maxTokens))
+      if (pdfAnalysis) fd.append('analysis', JSON.stringify(pdfAnalysis))
       const r2 = await fetch('/api/extract-from-pdf', { method: 'POST', body: fd })
       d2 = await r2.json()
       if (!r2.ok || d2.error) { setError('❌ فشل استخراج الأسئلة: ' + (d2.error || '')); setLoading(false); return }
