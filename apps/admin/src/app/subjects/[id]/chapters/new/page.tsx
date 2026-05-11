@@ -88,6 +88,7 @@ export default function NewChapterPage() {
     // Store in sessionStorage for reliable cross-render access
     if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('harvest_md', mdContent)
     mdRef.current = mdContent
+    console.log('handlePrepare: mdContent length:', mdContent.length, 'stored in sessionStorage:', typeof sessionStorage !== 'undefined')
     setMarkdown(mdContent)
     setTokenEstimate(estimateTokens(mdContent))
     setShowConfirm(true)
@@ -97,6 +98,7 @@ export default function NewChapterPage() {
   // ── Extract: send to Claude ──────────────────────────────
   async function handleConvert(mdContentParam?: string) {
     const mdContent = mdContentParam || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('harvest_md') || '' : '')
+    console.log('handleConvert called, mdContentParam length:', mdContentParam?.length, 'sessionStorage length:', typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('harvest_md')?.length : 'N/A', 'markdown state length:', markdown?.length)
     if (!mdContent) { setError('الملف غير جاهز، أعد رفعه'); setLoading(false); return }
     setLoading(true); setError('')
     setShowConfirm(false)
