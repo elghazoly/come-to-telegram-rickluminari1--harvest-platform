@@ -71,28 +71,34 @@ export default function NewChapterPage() {
     if (!pdfFile) { setError(`اختر ملف ${fileType === 'pdf' ? 'PDF' : 'Markdown'} أولاً`); return }
     if (!chapterName.trim()) { setError('أدخل اسم الفصل'); return }
     setLoading(true); setError('')
+    setPdfAnalysis(null)
 
-    let mdContent = ''
-    if (fileType === 'md') {
-      setLoadingMsg('جاري قراءة الملف...')
-      mdContent = await pdfFile.text()
-    } else {
-      setLoadingMsg('جاري تحويل PDF إلى Markdown...')
-      const fd = new FormData()
-      fd.append('file', pdfFile)
-      const r = await fetch('/api/pdf-to-md', { method: 'POST', body: fd })
-      const d = await r.json()
-      if (!r.ok || d.error) {
-        setError('فشل تحويل PDF: ' + (d.error || ''))
-        setLoading(false); return
-      }
-      mdContent = d.markdown
+    if (fileType === 'pdf') {
+      // Step 1: analyze PDF structure
+      setLoadingMsg('جاري تحليل بنية الملف...')
+      const afd = new FormData()
+      afd.append('file', pdfFile)
+      const ar = await fetch('/api/analyze-pdf', { method: 'POST', body: afd })
+      const ad = await ar.json()
+      if (ad.analysis) setPdfAnalysis(ad.analysis)
+
+      // Estimate tokens from file size
+      const pages = Math.ceil(pdfFile.size / 50000)
+      const estInput = pages * 1200 + 200
+      const estOutput = Math.min(maxTokens, 6000)
+      const cost = (estInput / 1_000_000 * 0.00025) + (estOutput / 1_000_000 * 0.00125)
+      mdRef.current = '__PDF_DIRECT__'
+      setMarkdown('__PDF_DIRECT__')
+      setTokenEstimate({ input: estInput, output: estOutput, cost, reduction: 0 } as any)
+      setShowConfirm(true)
+      setLoading(false)
+      return
     }
 
-    // Store in sessionStorage for reliable cross-render access
-    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('harvest_md', mdContent)
+    // MD file — read text directly
+    setLoadingMsg('جاري قراءة الملف...')
+    const mdContent = await pdfFile.text()
     mdRef.current = mdContent
-    console.log('handlePrepare: mdContent length:', mdContent.length, 'stored in sessionStorage:', typeof sessionStorage !== 'undefined')
     setMarkdown(mdContent)
     setTokenEstimate(estimateTokens(mdContent))
     setShowConfirm(true)
@@ -101,40 +107,40 @@ export default function NewChapterPage() {
 
   // ── Extract: send to Claude ──────────────────────────────
   async function handleConvert(mdContentParam?: string) {
-    const mdContent = mdContentParam || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('harvest_md') || '' : '')
-    console.log('handleConvert called, mdContentParam length:', mdContentParam?.length, 'sessionStorage length:', typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('harvest_md')?.length : 'N/A', 'markdown state length:', markdown?.length)
-    if (!mdContent) { setError('الملف غير جاهز، أعد رفعه'); setLoading(false); return }
     setLoading(true); setError('')
     setShowConfirm(false)
     setLoadingMsg('جاري تحليل الأسئلة بالذكاء الاصطناعي...')
 
-    const r2 = await fetch('/api/extract-questions', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ markdown: mdContent, rules, maxTokens })
-    })
-    const d2 = await r2.json()
+    let d2: any
 
-
+    if (fileType === 'pdf' && pdfFile) {
+      // Direct PDF → Claude Vision (no Markdown conversion)
+      const fd = new FormData()
+      fd.append('file', pdfFile)
+      fd.append('rules', rules)
+      fd.append('maxTokens', String(maxTokens))
+      const r2 = await fetch('/api/extract-from-pdf', { method: 'POST', body: fd })
+      d2 = await r2.json()
+      if (!r2.ok || d2.error) { setError('❌ فشل استخراج الأسئلة: ' + (d2.error || '')); setLoading(false); return }
+    } else {
+      // MD file → text extraction
+      const mdContent = mdContentParam || mdRef.current
+      if (!mdContent) { setError('الملف غير جاهز، أعد رفعه'); setLoading(false); return }
+      const r2 = await fetch('/api/extract-questions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markdown: mdContent, rules, maxTokens })
+      })
+      d2 = await r2.json()
+      if (!r2.ok || d2.error) { setError('❌ فشل استخراج الأسئلة: ' + (d2.error || '')); setLoading(false); return }
+    }
 
     setQuestions(d2.questions || [])
     setTruncated(d2.truncated || false)
-    // Update session usage with ACTUAL token counts from API
     if (d2.usage) {
       const actualInput  = d2.usage.input_tokens  || 0
       const actualOutput = d2.usage.output_tokens || 0
       const actualCost   = (actualInput / 1_000_000 * 0.00025) + (actualOutput / 1_000_000 * 0.00125)
-      setSessionUsage(prev => ({
-        tokens: prev.tokens + actualInput + actualOutput,
-        cost:   prev.cost   + actualCost,
-        count:  prev.count  + 1,
-      }))
-    } else if (tokenEstimate) {
-      setSessionUsage(prev => ({
-        tokens: prev.tokens + tokenEstimate.input + tokenEstimate.output,
-        cost:   prev.cost   + tokenEstimate.cost,
-        count:  prev.count  + 1,
-      }))
+      setSessionUsage(prev => ({ tokens: prev.tokens + actualInput + actualOutput, cost: prev.cost + actualCost, count: prev.count + 1 }))
     }
     setLoading(false)
     setStep('review')
