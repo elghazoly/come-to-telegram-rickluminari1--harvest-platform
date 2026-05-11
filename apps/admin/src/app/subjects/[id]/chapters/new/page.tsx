@@ -114,10 +114,7 @@ export default function NewChapterPage() {
     })
     const d2 = await r2.json()
 
-    if (!r2.ok || d2.error) {
-      setError('فشل استخراج الأسئلة: ' + (d2.error || ''))
-      setLoading(false); return
-    }
+
 
     setQuestions(d2.questions || [])
     setTruncated(d2.truncated || false)
@@ -335,7 +332,7 @@ export default function NewChapterPage() {
                   </span>
                 )}
                 <span className="text-slate-400 text-xs mt-1">
-                  {fileType === 'pdf' ? '.pdf' : '.md, .txt'}
+                  {fileType === 'pdf' ? '.pdf — يُرسل مباشرة لـ Claude Vision' : '.md, .txt'}
                 </span>
                 <input ref={fileRef} type="file"
                        accept={fileType === 'pdf' ? '.pdf,application/pdf' : '.md,.txt,text/markdown,text/plain'}
