@@ -38,7 +38,8 @@ export default function NewChapterPage() {
   const [loadingMsg,  setLoadingMsg]  = useState('')
   const [error,       setError]       = useState('')
   const [savedCount,  setSavedCount]  = useState(0)
-  const [tokenEstimate, setTokenEstimate] = useState<{input: number; output: number; cost: number} | null>(null)
+  const [tokenEstimate,  setTokenEstimate]  = useState<{input: number; output: number; cost: number} | null>(null)
+  const [sessionUsage,   setSessionUsage]   = useState<{tokens: number; cost: number; count: number}>({ tokens: 0, cost: 0, count: 0 })
   const [showConfirm,   setShowConfirm]   = useState(false)
   const [mdReady,       setMdReady]       = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -117,6 +118,14 @@ export default function NewChapterPage() {
     }
 
     setQuestions(d2.questions || [])
+    // Update session usage
+    if (tokenEstimate) {
+      setSessionUsage(prev => ({
+        tokens: prev.tokens + tokenEstimate.input + tokenEstimate.output,
+        cost:   prev.cost   + tokenEstimate.cost,
+        count:  prev.count  + 1,
+      }))
+    }
     setLoading(false)
     setStep('review')
   }
@@ -218,6 +227,37 @@ export default function NewChapterPage() {
         {/* ── STEP: UPLOAD ── */}
         {step === 'upload' && (
           <div className="space-y-6">
+            {/* Session Usage Bar */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="text-sm">
+                  <span className="text-slate-400 text-xs font-medium">توكن الجلسة</span>
+                  <div className="font-bold text-slate-700">{sessionUsage.tokens.toLocaleString()} توكن</div>
+                </div>
+                <div className="text-sm">
+                  <span className="text-slate-400 text-xs font-medium">التكلفة</span>
+                  <div className="font-bold text-green-700">${sessionUsage.cost.toFixed(4)}</div>
+                </div>
+                <div className="text-sm">
+                  <span className="text-slate-400 text-xs font-medium">ملفات محوّلة</span>
+                  <div className="font-bold text-blue-700">{sessionUsage.count}</div>
+                </div>
+                {sessionUsage.count > 0 && (
+                  <div className="flex-1 bg-slate-100 rounded-full h-2 max-w-32">
+                    <div className="bg-blue-500 h-2 rounded-full transition-all"
+                         style={{ width: `${Math.min(sessionUsage.cost / 0.5 * 100, 100)}%` }}
+                         title={`${((sessionUsage.cost / 0.5) * 100).toFixed(1)}% من $0.50`}/>
+                  </div>
+                )}
+              </div>
+              <a href="https://console.anthropic.com/settings/billing"
+                 target="_blank" rel="noopener noreferrer"
+                 className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors flex-shrink-0">
+                💳 إدارة الرصيد
+                <span className="text-blue-400">↗</span>
+              </a>
+            </div>
+
             {/* Chapter info */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <h2 className="font-bold text-slate-800 mb-4">📂 معلومات الفصل</h2>
