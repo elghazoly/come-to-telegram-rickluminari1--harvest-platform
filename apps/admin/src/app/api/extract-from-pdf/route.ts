@@ -59,11 +59,10 @@ export async function POST(req: NextRequest) {
       messages: [{
         role: 'user',
         content: [
-          // @ts-ignore — document type supported in API but not in older SDK types
           {
             type:   'document',
             source: { type: 'base64', media_type: mimeType, data: base64 },
-          },
+          } as any,
           {
             type: 'text',
             text: buildPrompt(rules),
