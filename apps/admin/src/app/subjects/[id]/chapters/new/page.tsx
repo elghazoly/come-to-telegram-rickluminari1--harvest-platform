@@ -41,6 +41,7 @@ export default function NewChapterPage() {
   const [tokenEstimate,  setTokenEstimate]  = useState<{input: number; output: number; cost: number} | null>(null)
   const [sessionUsage,   setSessionUsage]   = useState<{tokens: number; cost: number; count: number}>({ tokens: 0, cost: 0, count: 0 })
   const [showConfirm,   setShowConfirm]   = useState(false)
+  const [truncated,     setTruncated]     = useState(false)
   const [mdReady,       setMdReady]       = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const mdRef   = useRef<string>('')
@@ -118,6 +119,7 @@ export default function NewChapterPage() {
     }
 
     setQuestions(d2.questions || [])
+    setTruncated(d2.truncated || false)
     // Update session usage with ACTUAL token counts from API
     if (d2.usage) {
       const actualInput  = d2.usage.input_tokens  || 0
@@ -447,6 +449,13 @@ export default function NewChapterPage() {
                 </button>
               </div>
             </div>
+
+            {/* Truncation warning */}
+            {truncated && (
+              <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-orange-700 text-sm mb-4">
+                ⚠️ تحذير: الاستجابة اقتطعت — بعض الأسئلة قد لا تكون مكتملة. راجع الأسئلة بعناية أو أعد رفع الملف بأجزاء أصغر.
+              </div>
+            )}
 
             {/* Summary stats */}
             <div className="grid grid-cols-3 gap-4 mb-6">
