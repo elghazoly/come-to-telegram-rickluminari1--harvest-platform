@@ -72,6 +72,7 @@ export default function DashboardPage() {
             { label: '👥 المستخدمون',  href: '/users' },
             { label: '👨‍🏫 التعيينات',  href: '/assignments' },
             { label: '🗂️ الميديا',    href: '/media' },
+            { label: '📋 الاشتراكات',   href: '/enrollments' },
             { label: '⚙️ الإعدادات',   href: '/settings' },
           ].map(item => (
             <a key={item.href} href={item.href}
@@ -107,7 +108,8 @@ export default function DashboardPage() {
           {[
             { label: 'إضافة مادة جديدة',   href: '/subjects',    icon: '➕' },
             { label: 'إضافة معلم',          href: '/users',       icon: '👨‍🏫' },
-            { label: 'تعيين معلمين للمواد', href: '/assignments', icon: '📋' },
+            { label: 'تعيين معلمين للمواد', href: '/assignments',  icon: '📋' },
+            { label: 'إدارة الاشتراكات',    href: '/enrollments',  icon: '🎓' },
             { label: 'إدارة الميديا',        href: '/media',       icon: '🗂️' },
             { label: 'تقارير الطلاب',        href: '/reports',     icon: '📊' },
           ].map(action => (
