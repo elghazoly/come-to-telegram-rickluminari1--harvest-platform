@@ -6,14 +6,43 @@ import { useRouter } from 'next/navigation'
 type Option      = { id: string; letter: string; text: string; is_correct: boolean; order_num: number }
 type Explanation = { id: string; video_url: string | null; text_note: string | null }
 type Question    = { id: string; num: number; text: string; year: number | null; image_url: string | null; ans_text: string | null; order_num: number; options: Option[]; explanations: Explanation[] }
-type Chapter     = { id: string; name: string; icon: string | null; order_num: number; questions: Question[] }
+type Chapter     = { id: string; name: string; icon: string | null; order_num: number; questions: Question[]; chapter_type?: string; timer_enabled?: boolean; timer_duration?: number }
 type Subject     = { id: string; name: string; icon: string | null; chapters: Chapter[] }
 type ChatMsg     = { role: 'user' | 'assistant'; content: string }
 type PlatformSettings = { CONTACT_EMAIL?: string; CONTACT_WHATSAPP?: string; CONTACT_WEBSITE?: string; PLATFORM_NAME?: string; LOGO_URL?: string }
 
 const DEFAULT_LOGO = 'https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195'
 
-// ── Timer component ───────────────────────────────────────────
+// ── Exam Timer component ─────────────────────────────────────
+function ExamTimer({ seconds, onEnd }: { seconds: number; onEnd: () => void }) {
+  const [left, setLeft] = useState(seconds)
+  useEffect(() => {
+    const t = setInterval(() => {
+      setLeft(l => {
+        if (l <= 1) { clearInterval(t); onEnd(); return 0 }
+        return l - 1
+      })
+    }, 1000)
+    return () => clearInterval(t)
+  }, [])
+  const mins = Math.floor(left/60).toString().padStart(2,'0')
+  const secs = (left%60).toString().padStart(2,'0')
+  const pct   = (left / seconds) * 100
+  const color = pct > 50 ? '#16a34a' : pct > 20 ? '#d97706' : '#dc2626'
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-32 bg-slate-200 rounded-full h-2.5 overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }}/>
+      </div>
+      <span className="text-base font-black tabular-nums" style={{ color }}>
+        {mins}:{secs}
+      </span>
+      {left <= 60 && <span className="text-xs text-red-500 animate-pulse font-bold">⚠️ دقيقة أخيرة!</span>}
+    </div>
+  )
+}
+
+// ── (unused) simple Timer ─────────────────────────────────────
 function Timer({ seconds, onEnd }: { seconds: number; onEnd: () => void }) {
   const [left, setLeft] = useState(seconds)
   const ref = useRef<NodeJS.Timeout>()
@@ -56,9 +85,8 @@ export default function StudentDashboard() {
   const [aiInput,        setAiInput]        = useState('')
   const [aiLoading,      setAiLoading]      = useState(false)
   const [contactOpen,    setContactOpen]    = useState(false)
-  const [timerEnabled,   setTimerEnabled]   = useState(false)
-  const [timerSecs,      setTimerSecs]      = useState(60)
-  const [timerActive,    setTimerActive]    = useState<string | null>(null)
+  const [examTimeLeft,   setExamTimeLeft]   = useState<number | null>(null)
+  const [examStarted,    setExamStarted]    = useState(false)
   const [showResults,    setShowResults]    = useState(false)
   const aiEndRef = useRef<HTMLDivElement>(null)
 
@@ -124,7 +152,6 @@ export default function StudentDashboard() {
     if (answers[q.id]) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    setTimerActive(null)
     const newAnswers = { ...answers, [q.id]: { optionId: option.id, correct: option.is_correct } }
     setAnswers(newAnswers)
     await supabase.from('student_answers').upsert({
@@ -230,46 +257,35 @@ export default function StudentDashboard() {
       {/* ══════════ HEADER ══════════ */}
       <header className="flex-shrink-0 shadow-xl" style={{ background: 'linear-gradient(135deg, #071d4a 0%, #0a2d6e 50%, #1a4fa8 100%)' }}>
         {/* Top bar */}
-        <div className="px-5 py-3 flex items-center justify-between border-b border-white/10">
-          <div className="flex items-center gap-4">
-            <img src={logoUrl} alt={platformName} className="h-10 object-contain drop-shadow-sm"
-                 onError={e => { (e.target as HTMLImageElement).style.display='none' }}/>
-            <div className="h-8 w-px bg-white/20"/>
-            <div>
-              <p className="text-blue-200 text-xs leading-none">مرحباً،</p>
-              <p className="font-bold text-white">{profile?.full_name || '...'}</p>
-            </div>
+        <div className="px-5 py-4 grid grid-cols-3 items-center border-b border-white/10">
+          {/* Right — platform name */}
+          <div className="text-right">
+            <p className="font-black text-white text-lg leading-tight">منصة هارفست</p>
+            <p className="text-blue-200 text-xs">التعليمية</p>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Level badge */}
+          {/* Center — logo */}
+          <div className="flex justify-center">
+            <img src={logoUrl} alt={platformName}
+                 className="h-14 object-contain drop-shadow-md"
+                 onError={e => { (e.target as HTMLImageElement).style.display='none' }}/>
+          </div>
+          {/* Left — actions */}
+          <div className="flex items-center justify-end gap-2">
             {chapterAnswered >= 3 && (
-              <div className="hidden md:flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-xl text-xs font-bold text-white">
+              <div className="hidden md:flex items-center gap-1 bg-white/10 px-2.5 py-1.5 rounded-xl text-xs font-bold text-white">
                 {level.icon} {level.label}
               </div>
             )}
-            {/* Timer toggle */}
-            <button onClick={() => setTimerEnabled(t => !t)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                      timerEnabled ? 'bg-orange-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
-                    }`}>
-              ⏱️ تايمر
-            </button>
-            {timerEnabled && (
-              <select value={timerSecs} onChange={e => setTimerSecs(parseInt(e.target.value))}
-                      className="bg-white/10 text-white text-xs rounded-xl px-2 py-1.5 border-0 focus:outline-none">
-                {[30,60,90,120].map(s => <option key={s} value={s} className="text-slate-800">{s}s</option>)}
-              </select>
-            )}
             <button onClick={() => setShowResults(r => !r)}
-                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
-              📊 النتائج
+                    className="flex items-center gap-1 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
+              📊 نتائجي
             </button>
             <button onClick={() => setContactOpen(true)}
-                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
+                    className="flex items-center gap-1 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
               💬 تواصل
             </button>
             <button onClick={handleSignOut}
-                    className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/40 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
+                    className="bg-red-500/20 hover:bg-red-500/40 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
               خروج
             </button>
           </div>
@@ -413,8 +429,37 @@ export default function StudentDashboard() {
               )}
             </div>
 
+            {/* Exam Timer — at chapter level */}
+            {currentChapter?.chapter_type === 'exam' && currentChapter?.timer_enabled && !examStarted && (
+              <div className="bg-orange-50 border-b-2 border-orange-200 px-6 py-5 text-center">
+                <div className="text-4xl mb-2">⏱️</div>
+                <h3 className="font-bold text-orange-800 text-lg mb-1">اختبار — {currentChapter.name}</h3>
+                <p className="text-orange-600 text-sm mb-4">
+                  مدة الاختبار: <strong>{Math.round((currentChapter.timer_duration || 1800) / 60)} دقيقة</strong>
+                  {' '}• عدد الأسئلة: <strong>{currentQuestions.length}</strong>
+                </p>
+                <button onClick={() => { setExamStarted(true); setExamTimeLeft(currentChapter.timer_duration || 1800) }}
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-xl text-sm">
+                  🚀 ابدأ الاختبار
+                </button>
+              </div>
+            )}
+            {currentChapter?.chapter_type === 'exam' && currentChapter?.timer_enabled && examStarted && examTimeLeft !== null && (
+              <div className="bg-white border-b-2 border-orange-200 px-6 py-3 flex items-center justify-between sticky top-[52px] z-10">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-700 text-sm">📝 اختبار: {currentChapter.name}</span>
+                  <span className="text-xs text-slate-400">{chapterAnswered}/{currentQuestions.length} أجبت</span>
+                </div>
+                <ExamTimer
+                  key={`${activeChapter}-${examStarted}`}
+                  seconds={examTimeLeft}
+                  onEnd={() => setExamStarted(false)}
+                />
+              </div>
+            )}
+
             {/* Questions */}
-            <div className="p-4 space-y-5">
+            <div className={currentChapter?.chapter_type === 'exam' && currentChapter?.timer_enabled && !examStarted ? 'hidden' : 'p-4 space-y-5'}>
               {currentQuestions.map(q => {
                 const userAnswer = answers[q.id]
                 const isAnswered = !!userAnswer
@@ -424,7 +469,7 @@ export default function StudentDashboard() {
                 const hint       = hints[q.id]
 
                 return (
-                  <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                  <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden grid" style={{ gridTemplateColumns: exp?.video_url ? '1fr 340px' : '1fr' }}>
                     {/* Question */}
                     <div className="p-5">
                       <div className="flex items-start justify-between gap-3 mb-3">
@@ -437,16 +482,7 @@ export default function StudentDashboard() {
                             </span>
                           )}
                         </div>
-                        {/* Timer */}
-                        {timerEnabled && timerActive === q.id && !isAnswered && (
-                          <Timer seconds={timerSecs} onEnd={() => setTimerActive(null)}/>
-                        )}
-                        {timerEnabled && !isAnswered && timerActive !== q.id && (
-                          <button onClick={() => setTimerActive(q.id)}
-                                  className="text-xs text-orange-600 hover:text-orange-800 font-semibold flex items-center gap-1">
-                            ⏱️ ابدأ التايمر
-                          </button>
-                        )}
+  
                       </div>
 
                       <p className="text-slate-800 font-medium mb-4 leading-relaxed">{q.text}</p>
@@ -570,31 +606,34 @@ export default function StudentDashboard() {
                       </div>
                     )}
 
-                    {/* Video */}
-                    {exp?.video_url && (
-                      <div className="border-t border-emerald-100 bg-emerald-50">
-                        <div className="px-4 py-2.5 flex items-center justify-between border-b border-emerald-200">
-                          <p className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">🎬 فيديو شرح المعلم</p>
-                          <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: !v[q.id] }))}
-                                  className="text-xs text-emerald-600 hover:text-emerald-800 font-semibold bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1 rounded-lg transition-colors">
-                            {revealedVideos[q.id] ? '▲ إخفاء' : '▼ مشاهدة'}
+                  </div>
+                  {/* Video panel — side column */}
+                  {exp?.video_url && (
+                    <div className="border-r border-emerald-100 bg-emerald-50 flex flex-col">
+                      <div className="px-3 py-2.5 bg-emerald-600 flex items-center gap-2">
+                        <span className="text-white text-sm">🎬</span>
+                        <span className="text-xs font-bold text-white">شرح المعلم</span>
+                      </div>
+                      {revealedVideos[q.id] ? (
+                        <div className="flex-1 p-2">
+                          <video src={exp.video_url} controls className="w-full rounded-lg bg-black" style={{minHeight:'180px'}}/>
+                          {exp.text_note && <p className="text-xs text-emerald-700 mt-2 px-1">✏️ {exp.text_note}</p>}
+                          <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: false }))}
+                                  className="mt-2 w-full text-xs text-emerald-600 hover:text-emerald-800 font-medium">
+                            ▲ إخفاء
                           </button>
                         </div>
-                        {revealedVideos[q.id] ? (
-                          <div className="p-3">
-                            <video src={exp.video_url} controls autoPlay className="w-full rounded-xl bg-black max-h-64"/>
-                            {exp.text_note && <p className="text-xs text-emerald-700 mt-2">✏️ {exp.text_note}</p>}
+                      ) : (
+                        <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: true }))}
+                                className="flex-1 flex flex-col items-center justify-center gap-2 p-4 hover:bg-emerald-100 transition-colors">
+                          <div className="w-14 h-14 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+                            <span className="text-white text-2xl mr-1">▶</span>
                           </div>
-                        ) : (
-                          <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: true }))}
-                                  className="w-full flex items-center justify-center gap-2 py-3 text-sm text-emerald-700 hover:bg-emerald-100 transition-colors">
-                            <span className="bg-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg">▶</span>
-                            <span className="font-semibold">مشاهدة شرح المعلم</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                          <p className="text-xs font-semibold text-emerald-700 text-center">اضغط لمشاهدة<br/>شرح المعلم</p>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 )
               })}
             </div>

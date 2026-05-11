@@ -14,7 +14,7 @@ export default function ChaptersPage() {
   const [loading,  setLoading]  = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<Chapter | null>(null)
-  const [form,     setForm]     = useState({ name: '', icon: '' })
+  const [form,     setForm]     = useState({ name: '', icon: '', chapter_type: 'lesson', timer_enabled: false, timer_duration: 1800 })
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState('')
 
@@ -44,7 +44,7 @@ export default function ChaptersPage() {
 
   function openEdit(c: Chapter) {
     setEditItem(c)
-    setForm({ name: c.name, icon: c.icon || '' })
+    setForm({ name: c.name, icon: c.icon || '', chapter_type: (c as any).chapter_type || 'lesson', timer_enabled: (c as any).timer_enabled || false, timer_duration: (c as any).timer_duration || 1800 })
     setError('')
     setShowForm(true)
   }
@@ -57,14 +57,14 @@ export default function ChaptersPage() {
     if (editItem) {
       const { error: err } = await supabase
         .from('chapters')
-        .update({ name: form.name, icon: form.icon, updated_at: new Date().toISOString() })
+        .update({ name: form.name, icon: form.icon, chapter_type: form.chapter_type, timer_enabled: form.timer_enabled, timer_duration: form.timer_duration, updated_at: new Date().toISOString() })
         .eq('id', editItem.id)
       if (err) { setError(err.message); setSaving(false); return }
     } else {
       const maxOrder = chapters.length ? Math.max(...chapters.map(c => c.order_num)) + 1 : 1
       const { error: err } = await supabase
         .from('chapters')
-        .insert({ name: form.name, icon: form.icon, subject_id: subjectId, order_num: maxOrder })
+        .insert({ name: form.name, icon: form.icon, subject_id: subjectId, order_num: maxOrder, chapter_type: form.chapter_type, timer_enabled: form.timer_enabled, timer_duration: form.timer_duration })
       if (err) { setError(err.message); setSaving(false); return }
     }
 
@@ -130,13 +130,23 @@ export default function ChaptersPage() {
                   {c.icon || '📂'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h2 className="font-bold text-slate-800">{c.name}</h2>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                       c.published_at ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
                     }`}>
                       {c.published_at ? '✅ منشور' : '⏸ مسودة'}
                     </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      (c as any).chapter_type === 'exam' ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-600'
+                    }`}>
+                      {(c as any).chapter_type === 'exam' ? '📝 اختبار' : '📖 شرح'}
+                    </span>
+                    {(c as any).chapter_type === 'exam' && (c as any).timer_enabled && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600">
+                        ⏱️ {Math.round((c as any).timer_duration/60)} دق
+                      </span>
+                    )}
                   </div>
                   <p className="text-slate-400 text-xs">الترتيب: {c.order_num}</p>
                 </div>
@@ -192,6 +202,60 @@ export default function ChaptersPage() {
                        className="w-full border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-500"
                        placeholder="📐"/>
               </div>
+
+              {/* Chapter type */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-600 mb-2">نوع الفصل</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'lesson', label: '📖 شرح مع أسئلة', desc: 'فيديو + أسئلة تدريبية' },
+                    { value: 'exam',   label: '📝 اختبار',         desc: 'أسئلة فقط بدون شرح مسبق' },
+                  ].map(t => (
+                    <button key={t.value} type="button"
+                            onClick={() => setForm({...form, chapter_type: t.value})}
+                            className={`p-3 rounded-xl border-2 text-right transition-all ${
+                              form.chapter_type === t.value
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-slate-200 hover:border-blue-200'
+                            }`}>
+                      <p className="font-bold text-sm text-slate-800">{t.label}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{t.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Timer (exam only) */}
+              {form.chapter_type === 'exam' && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-bold text-orange-800">⏱️ إعدادات التايمر</p>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={form.timer_enabled}
+                           onChange={e => setForm({...form, timer_enabled: e.target.checked})}
+                           className="w-4 h-4"/>
+                    <span className="text-sm text-slate-700">تفعيل التايمر للاختبار</span>
+                  </label>
+                  {form.timer_enabled && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">مدة الاختبار (بالدقائق)</label>
+                      <div className="flex gap-2 flex-wrap">
+                        {[15,20,30,45,60,90].map(m => (
+                          <button key={m} type="button"
+                                  onClick={() => setForm({...form, timer_duration: m*60})}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    form.timer_duration === m*60
+                                      ? 'bg-orange-500 text-white'
+                                      : 'bg-white border border-orange-200 text-orange-700 hover:bg-orange-100'
+                                  }`}>
+                            {m} دقيقة
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {error && <p className="text-red-600 text-sm">{error}</p>}
             </div>
             <div className="flex gap-3 p-6 border-t border-slate-100">
