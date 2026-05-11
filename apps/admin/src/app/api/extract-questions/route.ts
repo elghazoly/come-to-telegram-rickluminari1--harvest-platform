@@ -137,6 +137,25 @@ function splitIntoChunks(text: string, size = 6000): string[] {
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
+// Clean markdown while PRESERVING question numbers
+function cleanMarkdown(md: string): string {
+  return md
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .filter(line => !line.match(/^-{3,}$/))
+    .map(line => {
+      // Preserve question number lines (## 1, ## 2 → [سؤال 1])
+      const qNum = line.match(/^#{1,6}\s*(\d+)\s*$/)
+      if (qNum) return `[سؤال ${qNum[1]}]`
+      return line.replace(/^#{1,6}\s*/, '')
+    })
+    .map(line => line.replace(/\*\*/g, '').replace(/[_~`]/g, '').replace(/\s+/g, ' '))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .substring(0, 20000)
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { markdown, rules, maxTokens } = await req.json()
@@ -146,7 +165,9 @@ export async function POST(req: NextRequest) {
     }
 
     const tokenLimit = Math.min(Math.max(parseInt(maxTokens) || 6000, 2000), 8000)
-    const chunks = markdown.length > 6000 ? splitIntoChunks(markdown) : [markdown]
+    const cleanedMd = cleanMarkdown(markdown)
+    console.log(`Markdown cleaned: ${markdown.length} → ${cleanedMd.length} chars`)
+    const chunks = cleanedMd.length > 6000 ? splitIntoChunks(cleanedMd) : [cleanedMd]
 
     const allQuestions: RawQuestion[] = []
     let topic: string | undefined
