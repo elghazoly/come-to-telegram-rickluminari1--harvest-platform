@@ -447,7 +447,10 @@ export default function StudentDashboard() {
                 const hint       = hints[q.id]
 
                 return (
-                  <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100" style={{ display: 'grid', gridTemplateColumns: exp?.video_url ? '1fr 320px' : '1fr', overflow: 'hidden', borderRadius: '1rem' }}>
+                  <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                  <div className="flex flex-row">
+                  {/* Left: question content */}
+                  <div className="flex-1 min-w-0">
                     {/* Question */}
                     <div className="p-5">
                       <div className="flex items-start justify-between gap-3 mb-3">
@@ -585,9 +588,9 @@ export default function StudentDashboard() {
                     )}
 
                   </div>
-                  {/* Video panel — side column */}
+                  {/* Right: video panel */}
                   {exp?.video_url && (
-                    <div className="border-l border-emerald-100 bg-emerald-50 flex flex-col min-h-full">
+                    <div className="w-72 flex-shrink-0 border-l border-emerald-100 bg-emerald-50 flex flex-col">
                       <div className="px-3 py-2.5 bg-emerald-600 flex items-center gap-2">
                         <span className="text-white text-sm">🎬</span>
                         <span className="text-xs font-bold text-white">شرح المعلم</span>
@@ -612,6 +615,7 @@ export default function StudentDashboard() {
                       )}
                     </div>
                   )}
+                  </div>{/* end flex row */}
                 )
               })}
             </div>
