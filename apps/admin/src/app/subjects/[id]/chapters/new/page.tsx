@@ -314,7 +314,7 @@ export default function NewChapterPage() {
               </div>
             )}
 
-            <button onClick={() => handleConvert()} disabled={loading || !pdfFile || !chapterName}
+            <button onClick={() => handlePrepare()} disabled={loading || !pdfFile || !chapterName}
                     className="w-full py-4 rounded-2xl text-white font-bold text-base disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg"
                     style={{ background: 'linear-gradient(90deg, #0a2d6e, #1a4fa8)' }}>
               {loading ? (
