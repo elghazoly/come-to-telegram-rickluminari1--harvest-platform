@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
       messages: [{
         role: 'user',
         content: [
+          // @ts-ignore — document type supported in API but not in older SDK types
           {
             type: 'document',
             source: { type: 'base64', media_type: 'application/pdf', data: base64 }
