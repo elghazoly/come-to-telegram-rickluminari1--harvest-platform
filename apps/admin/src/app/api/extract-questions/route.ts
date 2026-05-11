@@ -20,8 +20,10 @@ function cleanMarkdown(md: string): string {
 }
 
 export async function POST(req: Request) {
-  const { markdown, rules } = await req.json()
+  const { markdown, rules, maxTokens } = await req.json()
   if (!markdown) return NextResponse.json({ error: 'markdown is required' }, { status: 400 })
+
+  const tokenLimit = Math.min(Math.max(parseInt(maxTokens) || 6000, 2000), 8000)
 
   const cleanedMd = cleanMarkdown(markdown)
   console.log(`Markdown: ${markdown.length} → ${cleanedMd.length} chars`)
@@ -37,7 +39,7 @@ export async function POST(req: Request) {
   try {
     const response = await client.messages.create({
       model:      'claude-haiku-4-5',
-      max_tokens: 6000,
+      max_tokens: tokenLimit,
       messages:   [{ role: 'user', content: userPrompt }],
       system:     systemPrompt,
     })

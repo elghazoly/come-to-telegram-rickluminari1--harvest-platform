@@ -42,6 +42,7 @@ export default function NewChapterPage() {
   const [sessionUsage,   setSessionUsage]   = useState<{tokens: number; cost: number; count: number}>({ tokens: 0, cost: 0, count: 0 })
   const [showConfirm,   setShowConfirm]   = useState(false)
   const [truncated,     setTruncated]     = useState(false)
+  const [maxTokens,     setMaxTokens]     = useState(6000)
   const [mdReady,       setMdReady]       = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const mdRef   = useRef<string>('')
@@ -109,7 +110,7 @@ export default function NewChapterPage() {
     const r2 = await fetch('/api/extract-questions', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ markdown: mdContent, rules })
+      body:    JSON.stringify({ markdown: mdContent, rules, maxTokens })
     })
     const d2 = await r2.json()
 
@@ -400,7 +401,7 @@ export default function NewChapterPage() {
                     </div>
                   ))}
                 </div>
-                <div className="bg-blue-50 rounded-xl px-4 py-2 text-xs text-blue-700 mb-4 text-center">
+                <div className="bg-blue-50 rounded-xl px-4 py-2 text-xs text-blue-700 mb-3 text-center">
                   ℹ️ الأرقام تقديرية — الموديل: <strong>claude-haiku-4-5</strong>
                   {tokenEstimate && (tokenEstimate as any).reduction > 0 && (
                     <span className="mr-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
@@ -408,6 +409,41 @@ export default function NewChapterPage() {
                     </span>
                   )}
                   <br/>$0.25/م توكن إدخال • $1.25/م توكن إخراج
+                </div>
+
+                {/* Max tokens selector */}
+                <div className="bg-slate-50 rounded-xl p-3 mb-4">
+                  <p className="text-xs font-bold text-slate-600 mb-2 text-center">
+                    ⚙️ حد الإخراج القصوى (max_tokens)
+                    <span className="text-slate-400 font-normal mr-1">— زيادته تضمن استخراج كل الأسئلة</span>
+                  </p>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {[
+                      { val: 2000, label: '2K', desc: 'حتى 8 أسئلة',  color: 'green' },
+                      { val: 4000, label: '4K', desc: 'حتى 15 سؤال',  color: 'blue' },
+                      { val: 6000, label: '6K', desc: 'حتى 25 سؤال',  color: 'purple' },
+                      { val: 8000, label: '8K', desc: 'حتى 35 سؤال',  color: 'orange' },
+                    ].map(opt => (
+                      <button key={opt.val} onClick={() => setMaxTokens(opt.val)}
+                              className={`px-3 py-2 rounded-xl border-2 text-xs font-bold transition-all ${
+                                maxTokens === opt.val
+                                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                  : 'border-slate-200 bg-white text-slate-500 hover:border-blue-200'
+                              }`}>
+                        <div className="font-black text-sm">{opt.label}</div>
+                        <div className="opacity-70">{opt.desc}</div>
+                        <div className="text-green-600 mt-0.5">
+                          ~${((opt.val / 1_000_000) * 1.25).toFixed(4)}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-center text-xs text-slate-400 mt-2">
+                    محدد حالياً: <strong>{maxTokens.toLocaleString()} توكن</strong>
+                    {maxTokens !== 6000 && maxTokens < 6000 && (
+                      <span className="text-orange-500 mr-1">⚠️ قد لا يكفي لاستخراج كل الأسئلة</span>
+                    )}
+                  </p>
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => handleConvert(markdown)}
