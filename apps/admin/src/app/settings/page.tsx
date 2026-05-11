@@ -14,7 +14,7 @@ const SETTINGS_SCHEMA: Setting[] = [
   { key: 'SUPABASE_SERVICE_KEY',   label: 'Supabase Service Key',   description: 'مفتاح الخدمة (يتجاوز RLS) — احتفظ به سراً',                                 type: 'password', icon: '🔐', group: 'Database' },
   // Cloudflare
   { key: 'CF_WORKER_URL',          label: 'Cloudflare Worker URL',  description: 'رابط Worker لرفع الفيديوهات والصور',                                         type: 'url',      icon: '☁️', group: 'Storage' },
-  { key: 'CF_WORKER_TOKEN',        label: 'Cloudflare Worker Token','description': 'مفتاح المصادقة للـ Worker',                                                  type: 'password', icon: '☁️', group: 'Storage' },
+  { key: 'CF_WORKER_TOKEN',        label: 'Cloudflare Worker Token', description: 'مفتاح المصادقة للـ Worker',                                                  type: 'password', icon: '☁️', group: 'Storage' },
   // Shopify
   { key: 'SHOPIFY_WEBHOOK_SECRET', label: 'Shopify Webhook Secret', description: 'سيكريت الـ Webhook لربط الاشتراكات تلقائياً',                               type: 'password', icon: '🛒', group: 'Shopify' },
   { key: 'SHOPIFY_STORE_URL',      label: 'Shopify Store URL',      description: 'رابط متجر Shopify',                                                           type: 'url',      icon: '🛒', group: 'Shopify' },
