@@ -399,8 +399,13 @@ export default function NewChapterPage() {
                   ))}
                 </div>
                 <div className="bg-blue-50 rounded-xl px-4 py-2 text-xs text-blue-700 mb-4 text-center">
-                  ℹ️ الأرقام تقديرية — الموديل المستخدم: <strong>claude-haiku-4-5</strong>
-                  <br/>السعر: $0.25/مليون توكن إدخال • $1.25/مليون توكن إخراج
+                  ℹ️ الأرقام تقديرية — الموديل: <strong>claude-haiku-4-5</strong>
+                  {tokenEstimate && (tokenEstimate as any).reduction > 0 && (
+                    <span className="mr-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+                      ✂️ تم تقليص الملف {(tokenEstimate as any).reduction}%
+                    </span>
+                  )}
+                  <br/>$0.25/م توكن إدخال • $1.25/م توكن إخراج
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => handleConvert(markdown)}
