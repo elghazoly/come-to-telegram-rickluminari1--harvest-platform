@@ -118,8 +118,17 @@ export default function NewChapterPage() {
     }
 
     setQuestions(d2.questions || [])
-    // Update session usage
-    if (tokenEstimate) {
+    // Update session usage with ACTUAL token counts from API
+    if (d2.usage) {
+      const actualInput  = d2.usage.input_tokens  || 0
+      const actualOutput = d2.usage.output_tokens || 0
+      const actualCost   = (actualInput / 1_000_000 * 0.00025) + (actualOutput / 1_000_000 * 0.00125)
+      setSessionUsage(prev => ({
+        tokens: prev.tokens + actualInput + actualOutput,
+        cost:   prev.cost   + actualCost,
+        count:  prev.count  + 1,
+      }))
+    } else if (tokenEstimate) {
       setSessionUsage(prev => ({
         tokens: prev.tokens + tokenEstimate.input + tokenEstimate.output,
         cost:   prev.cost   + tokenEstimate.cost,
