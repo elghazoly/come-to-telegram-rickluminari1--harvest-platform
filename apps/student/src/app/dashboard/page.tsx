@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 
@@ -42,29 +42,7 @@ function ExamTimer({ seconds, onEnd }: { seconds: number; onEnd: () => void }) {
   )
 }
 
-// ── (unused) simple Timer ─────────────────────────────────────
-function Timer({ seconds, onEnd }: { seconds: number; onEnd: () => void }) {
-  const [left, setLeft] = useState(seconds)
-  const ref = useRef<NodeJS.Timeout>()
-  useEffect(() => {
-    ref.current = setInterval(() => {
-      setLeft(l => { if (l <= 1) { clearInterval(ref.current); onEnd(); return 0 } return l - 1 })
-    }, 1000)
-    return () => clearInterval(ref.current)
-  }, [])
-  const pct = (left / seconds) * 100
-  const color = pct > 50 ? '#16a34a' : pct > 20 ? '#d97706' : '#dc2626'
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-24 bg-slate-200 rounded-full h-2">
-        <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: color }}/>
-      </div>
-      <span className="text-xs font-bold tabular-nums" style={{ color }}>
-        {Math.floor(left/60).toString().padStart(2,'0')}:{(left%60).toString().padStart(2,'0')}
-      </span>
-    </div>
-  )
-}
+
 
 export default function StudentDashboard() {
   const router = useRouter()
@@ -452,7 +430,7 @@ export default function StudentDashboard() {
                 </div>
                 <ExamTimer
                   key={`${activeChapter}-${examStarted}`}
-                  seconds={examTimeLeft}
+                  seconds={examTimeLeft ?? 1800}
                   onEnd={() => setExamStarted(false)}
                 />
               </div>
@@ -469,7 +447,7 @@ export default function StudentDashboard() {
                 const hint       = hints[q.id]
 
                 return (
-                  <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden grid" style={{ gridTemplateColumns: exp?.video_url ? '1fr 340px' : '1fr' }}>
+                  <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: exp?.video_url ? '1fr 340px' : '1fr' }}>
                     {/* Question */}
                     <div className="p-5">
                       <div className="flex items-start justify-between gap-3 mb-3">

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 
-interface Setting { key: string; value: string; label: string; description: string; type: 'text'|'password'|'url'; icon: string; group: string }
+interface Setting { key: string; value?: string; label: string; description: string; type: 'text'|'password'|'url'; icon: string; group: string }
 
 const SETTINGS_SCHEMA: Setting[] = [
   // Anthropic
