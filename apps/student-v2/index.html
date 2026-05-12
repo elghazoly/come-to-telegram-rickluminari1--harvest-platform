@@ -418,7 +418,8 @@ function renderQuestions() {
 }
 
 function renderQuestion(q) {
-  const exp    = q.explanations?.[0]
+  const expRaw = q.explanations
+  const exp    = Array.isArray(expRaw) ? expRaw[0] : expRaw
   const hasVid = !!(exp?.video_url)
   const ans    = STATE.answers[q.id]
   const isAns  = !!ans
