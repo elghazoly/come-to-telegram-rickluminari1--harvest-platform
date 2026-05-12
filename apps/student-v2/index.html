@@ -9,6 +9,42 @@
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
   html { font-size: 19px; }
   body { background: #f1f5f9; direction: rtl; }
+
+  /* Subject & section picker screens */
+  .picker-screen { display:none; flex:1; overflow-y:auto; background:#f0f4ff; padding:24px; }
+  .picker-screen.active { display:block; }
+  .picker-title { font-size:20px; font-weight:800; color:#1e293b; margin-bottom:6px; }
+  .picker-sub { font-size:13px; color:#64748b; margin-bottom:24px; }
+  .subject-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
+  .subject-card { background:white; border-radius:18px; padding:24px 20px; cursor:pointer; border:1.5px solid #e2e8f0; transition:all .2s; text-align:center; }
+  .subject-card:hover { border-color:#1d4ed8; box-shadow:0 4px 20px rgba(29,78,216,.12); transform:translateY(-2px); }
+  .subject-card .s-icon { font-size:36px; margin-bottom:12px; }
+  .subject-card .s-name { font-size:16px; font-weight:700; color:#1e293b; }
+  .subject-card .s-meta { font-size:12px; color:#94a3b8; margin-top:4px; }
+  .subject-card .s-pct { font-size:13px; font-weight:700; color:#1d4ed8; margin-top:8px; }
+
+  .section-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+  .section-card { background:white; border-radius:16px; padding:20px; cursor:pointer; border:1.5px solid #e2e8f0; transition:all .2s; }
+  .section-card:hover { transform:translateY(-2px); }
+  .section-card.blue:hover  { border-color:#1d4ed8; box-shadow:0 4px 16px rgba(29,78,216,.12); }
+  .section-card.yellow:hover { border-color:#ca8a04; box-shadow:0 4px 16px rgba(202,138,4,.12); }
+  .section-card.green:hover  { border-color:#16a34a; box-shadow:0 4px 16px rgba(22,163,74,.12); }
+  .section-card.purple:hover { border-color:#7c3aed; box-shadow:0 4px 16px rgba(124,58,237,.12); }
+  .section-card.gray:hover   { border-color:#475569; box-shadow:0 4px 16px rgba(71,85,105,.12); }
+  .sc-icon { width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:12px; }
+  .sc-icon.blue   { background:#eff6ff; }
+  .sc-icon.yellow { background:#fefce8; }
+  .sc-icon.green  { background:#f0fdf4; }
+  .sc-icon.purple { background:#f5f3ff; }
+  .sc-icon.gray   { background:#f8fafc; }
+  .sc-name { font-size:14px; font-weight:700; color:#1e293b; }
+  .sc-desc { font-size:11px; color:#94a3b8; margin-top:4px; line-height:1.5; }
+  .sc-badge { display:inline-block; margin-top:8px; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; }
+  .sc-badge.soon { background:#f1f5f9; color:#94a3b8; }
+  .sc-badge.new  { background:#dcfce7; color:#166534; }
+
+  .back-btn { display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; border:none; color:#475569; padding:8px 14px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; margin-bottom:20px; }
+  .back-btn:hover { background:#e2e8f0; color:#1e293b; }
   .hidden { display: none !important; }
 
   /* Login */
@@ -499,6 +535,61 @@
       </div>
     </div>
 
+    <!-- Subject picker screen -->
+    <div class="picker-screen" id="subject-picker">
+      <button class="back-btn" onclick="goHome()">← الرئيسية</button>
+      <div class="picker-title">اختر المادة</div>
+      <div class="picker-sub">اختر المادة التي تريد الدراسة منها</div>
+      <div class="subject-cards" id="subject-cards-list"></div>
+    </div>
+
+    <!-- Section picker screen -->
+    <div class="picker-screen" id="section-picker">
+      <button class="back-btn" onclick="showSubjectPicker()">← المواد</button>
+      <div class="picker-title" id="section-picker-title">اختر القسم</div>
+      <div class="picker-sub" id="section-picker-sub">اختر ما تريد الوصول إليه</div>
+      <div class="section-cards">
+        <div class="section-card blue" onclick="showLessons()">
+          <div class="sc-icon blue">📖</div>
+          <div class="sc-name">شروحات الدروس</div>
+          <div class="sc-desc">فيديوهات الشرح وأسئلة كل فصل</div>
+          <span class="sc-badge new">متاح</span>
+        </div>
+        <div class="section-card yellow" onclick="">
+          <div class="sc-icon yellow">📝</div>
+          <div class="sc-name">التجميعات</div>
+          <div class="sc-desc">أسئلة مجمّعة من جميع السنوات</div>
+          <span class="sc-badge soon">قريباً</span>
+        </div>
+        <div class="section-card green" onclick="">
+          <div class="sc-icon green">💻</div>
+          <div class="sc-name">اختبارات إلكترونية</div>
+          <div class="sc-desc">اختبر نفسك بأسلوب الاختبار الحقيقي</div>
+          <span class="sc-badge soon">قريباً</span>
+        </div>
+        <div class="section-card purple" onclick="">
+          <div class="sc-icon purple">🎯</div>
+          <div class="sc-name">التوقعات</div>
+          <div class="sc-desc">أهم الأسئلة المتوقعة للاختبار</div>
+          <span class="sc-badge soon">قريباً</span>
+        </div>
+        <div class="section-card gray" onclick="">
+          <div class="sc-icon gray">📥</div>
+          <div class="sc-name">ملفات المادة</div>
+          <div class="sc-desc">تحميل الملخصات والمراجع</div>
+          <span class="sc-badge soon">قريباً</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chapters sidebar (lessons view) -->
+    <div class="sidebar" id="chapters-sidebar" style="display:none">
+      <div style="padding:8px 12px;border-bottom:1px solid #f1f5f9">
+        <button class="back-btn" style="margin:0;width:100%;justify-content:center" onclick="showSectionPicker()">← اختيار القسم</button>
+      </div>
+      <div class="sidebar-title">الفصول</div>
+      <div id="chapters-list"></div>
+    </div>
     <!-- Chapters sidebar -->
     <div class="sidebar">
       <div class="sidebar-title">الفصول</div>
@@ -664,14 +755,73 @@ function goHome() {
 function showSubjects() {
   document.getElementById('home-page').style.display = 'none'
   document.getElementById('subjects-view').style.display = 'flex'
-  document.getElementById('subject-tabs').style.display = 'flex'
+  document.getElementById('subject-tabs').style.display = 'none'
   // Sync sidebar state
   const appSidebar = document.getElementById('app-sidebar')
   if (appSidebar) appSidebar.classList.toggle('collapsed', !sidebarOpen)
-  // Update name in app sidebar
   const appSidebarName = document.getElementById('app-sidebar-name')
   if (appSidebarName) appSidebarName.textContent = STATE.profile?.full_name || ''
+  showSubjectPicker()
+}
+
+function showSubjectPicker() {
+  document.getElementById('subject-picker').classList.add('active')
+  document.getElementById('section-picker').classList.remove('active')
+  hideSidebars()
+  // Render subject cards
+  document.getElementById('subject-cards-list').innerHTML = STATE.subjects.map(sub => {
+    const totalQ   = sub.chapters.reduce((t, ch) => t + ch.questions.length, 0)
+    const answered = sub.chapters.reduce((t, ch) => t + ch.questions.filter(q => STATE.answers[q.id]).length, 0)
+    const pct      = totalQ ? Math.round(answered / totalQ * 100) : 0
+    return `<div class="subject-card" onclick="selectSubject('${sub.id}')">`
+      + `<div class="s-icon">${sub.icon||'📚'}</div>`
+      + `<div class="s-name">${sub.name}</div>`
+      + `<div class="s-meta">${sub.chapters.length} فصل • ${totalQ} سؤال</div>`
+      + `<div class="s-pct">${pct}% مكتمل</div></div>`
+
+      + '<div class="s-name">' + sub.name + '</div>'
+      + '<div class="s-meta">' + sub.chapters.length + ' فصل • ' + totalQ + ' سؤال</div>'
+      + '<div class="s-pct">' + pct + '% مكتمل</div>'
+      + '</div>'
+  }).join('')
+}
+
+function selectSubject(sid) {
+  STATE.activeSubject = sid
+  const sub = STATE.subjects.find(s => s.id === sid)
+  document.getElementById('section-picker-title').textContent = sub ? sub.name : 'اختر القسم'
+  document.getElementById('section-picker-sub').textContent = 'ماذا تريد أن تدرس؟'
+  document.getElementById('subject-picker').classList.remove('active')
+  document.getElementById('section-picker').classList.add('active')
+}
+
+function showSectionPicker() {
+  document.getElementById('section-picker').classList.add('active')
+  document.getElementById('subject-picker').classList.remove('active')
+  hideSidebars()
+}
+
+function showLessons() {
+  document.getElementById('section-picker').classList.remove('active')
+  document.getElementById('subject-picker').classList.remove('active')
+  showChaptersSidebar()
+  document.getElementById('subject-tabs').style.display = 'none'
+  // Set first chapter
+  const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+  if (sub?.chapters.length) STATE.activeChapter = sub.chapters[0].id
   renderAll()
+}
+
+function hideSidebars() {
+  document.querySelector('.sidebar').style.display = 'none'
+  document.getElementById('questions-list').innerHTML = ''
+  document.getElementById('exam-start').classList.add('hidden')
+  document.getElementById('exam-timer-bar').classList.add('hidden')
+}
+
+function showChaptersSidebar() {
+  document.querySelector('.sidebar').style.display = 'flex'
+  document.querySelector('.sidebar').style.flexDirection = 'column'
 }
 
 function showPerformance() {
@@ -782,7 +932,6 @@ function showChallengesModal() {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 function renderAll() {
-  renderTabs()
   renderSidebar()
   renderQuestions()
 }
