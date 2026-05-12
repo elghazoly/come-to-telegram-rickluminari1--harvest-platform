@@ -425,6 +425,7 @@ async function initApp() {
 function showHome() {
   document.getElementById('home-page').style.display = 'block'
   document.getElementById('subjects-view').style.display = 'none'
+  document.getElementById('subject-tabs').style.display = 'none'
   // Welcome
   document.getElementById('welcome-name').textContent = 'مرحباً، ' + (STATE.profile?.full_name || '') + '! 👋'
   // Stats
@@ -443,11 +444,13 @@ function showHome() {
 function goHome() {
   document.getElementById('home-page').style.display = 'block'
   document.getElementById('subjects-view').style.display = 'none'
+  document.getElementById('subject-tabs').style.display = 'none'
 }
 
 function showSubjects() {
   document.getElementById('home-page').style.display = 'none'
   document.getElementById('subjects-view').style.display = 'flex'
+  document.getElementById('subject-tabs').style.display = 'flex'
   renderAll()
 }
 
