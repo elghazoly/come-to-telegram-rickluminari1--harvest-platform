@@ -13,6 +13,12 @@ type Settings    = { CONTACT_EMAIL?: string; CONTACT_WHATSAPP?: string; CONTACT_
 
 const DEFAULT_LOGO = 'https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195'
 
+// Single supabase instance — outside component to prevent re-creation on re-render
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
 function ExamTimer({ seconds, onEnd }: { seconds: number; onEnd: () => void }) {
   const [left, setLeft] = useState(seconds)
   useEffect(() => {
@@ -59,11 +65,6 @@ export default function StudentDashboard() {
   const [examTimeLeft,   setExamTimeLeft]   = useState<number | null>(null)
   const [showResults,    setShowResults]    = useState(false)
   const aiEndRef = useRef<HTMLDivElement>(null)
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   useEffect(() => {
     async function load() {
