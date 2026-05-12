@@ -551,6 +551,7 @@ export default function StudentDashboard() {
                         {/* VIDEO COLUMN */}
                         {hasVideo && (
                           <div style={{ width: '300px', flexShrink: 0, borderLeft: '1px solid #d1fae5', background: '#ecfdf5', display: 'flex', flexDirection: 'column' }}>
+                            <p style={{ color: 'red', fontWeight: 'bold', padding: '10px' }}>VIDEO BLOCK TEST - Q{q.num}</p>
                             <div className="px-3 py-2.5 flex items-center gap-2" style={{ background: '#059669' }}>
                               <span className="text-white text-sm">🎬</span>
                               <span className="text-xs font-bold text-white">شرح المعلم</span>
