@@ -419,6 +419,7 @@ export default function StudentDashboard() {
                   const hint       = hints[q.id]
                   const chat       = aiChats[q.id] || []
                   const hasVideo   = !!exp?.video_url
+                  if (q.num <= 3) console.log(`Q${q.num} exp:`, exp, 'hasVideo:', hasVideo)
 
                   return (
                     <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
