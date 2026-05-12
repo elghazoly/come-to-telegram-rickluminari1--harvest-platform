@@ -931,23 +931,32 @@ function toggleResults() {
 
 function openContact() {
   const s = STATE.siteSettings
-  document.getElementById('contact-body').innerHTML = [
-    {ic:'mail',lb:'البريد الإلكتروني',val:s.CONTACT_EMAIL||'info@harvste.com',fn:`window.open('mailto:${s.CONTACT_EMAIL||'info@harvste.com'}')`},
-    {ic:'chat',lb:'واتساب',val:'تواصل عبر واتساب',fn:`window.open('https://wa.me/${s.CONTACT_WHATSAPP||'966500000000'}')`},
-    {ic:'web',lb:'الموقع الرسمي',val:s.CONTACT_WEBSITE||'harvste.com',fn:`window.open('${s.CONTACT_WEBSITE||'https://www.harvste.com'}')`},
-  ].map(item=>{
+  const items = [
+    {ic:'mail', lb:'البريد الإلكتروني', val: s.CONTACT_EMAIL||'info@harvste.com',    fn: 'mail'},
+    {ic:'chat', lb:'واتساب',            val: 'تواصل عبر واتساب',                     fn: 'whatsapp'},
+    {ic:'web',  lb:'الموقع الرسمي',     val: s.CONTACT_WEBSITE||'harvste.com',        fn: 'website'},
+  ]
   const contactIcons = {
-    mail: `<svg viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
-    chat: `<svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 0 2 2z"/></svg>`,
-    web: `<svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`
-  };
-  return `
-    <button onclick="${item.fn}" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1px solid #e2e8f0;background:white;cursor:pointer;text-align:right;width:100%;margin-bottom:10px">
-      <span style="font-size:24px">${contactIcons[item.ic]||item.ic}</span>
-      <div><div style="font-weight:600;font-size:14px;color:#1e293b">${item.lb}</div><div style="font-size:12px;color:#94a3b8">${item.val}</div></div>
-    </button>`).join('')
+    mail: '<svg viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+    chat: '<svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 0 2 2z"/></svg>',
+    web:  '<svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
+  }
+  document.getElementById('contact-body').innerHTML = items.map(item => {
+    return '<button onclick="contactAction(\''+item.fn+'\')" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1px solid #e2e8f0;background:white;cursor:pointer;text-align:right;width:100%;margin-bottom:10px">'
+      + '<span>' + (contactIcons[item.ic]||'') + '</span>'
+      + '<div><div style="font-weight:600;font-size:14px;color:#1e293b">' + item.lb + '</div><div style="font-size:12px;color:#94a3b8">' + item.val + '</div></div>'
+      + '</button>'
+  }).join('')
   document.getElementById('contact-modal').classList.remove('hidden')
 }
+
+function contactAction(type) {
+  const s = STATE.siteSettings
+  if (type === 'mail')     window.open('mailto:' + (s.CONTACT_EMAIL || 'info@harvste.com'))
+  if (type === 'whatsapp') window.open('https://wa.me/' + (s.CONTACT_WHATSAPP || '966500000000'))
+  if (type === 'website')  window.open(s.CONTACT_WEBSITE || 'https://www.harvste.com')
+}
+
 function closeContact() { document.getElementById('contact-modal').classList.add('hidden') }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
