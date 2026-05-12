@@ -800,6 +800,20 @@ function toggleVideo(qid) { STATE.openVideos[qid] = !STATE.openVideos[qid]; reRe
 function toggleAns(qid)   { STATE.openAns[qid]   = !STATE.openAns[qid];   reRenderCard(qid) }
 function toggleAI(qid)    { STATE.aiOpen = STATE.aiOpen === qid ? '' : qid; reRenderCard(qid) }
 
+function getHintById(qid) {
+  const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+  const ch  = sub?.chapters.find(c => c.id === STATE.activeChapter)
+  const q   = ch?.questions.find(q => q.id === qid)
+  if (q) getHint(qid, q.text)
+}
+
+function sendAIById(qid) {
+  const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+  const ch  = sub?.chapters.find(c => c.id === STATE.activeChapter)
+  const q   = ch?.questions.find(q2 => q2.id === qid)
+  if (q) sendAI(qid, q.text)
+}
+
 async function getHint(qid, qtext) {
   if (STATE.hints[qid]) return
   const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
