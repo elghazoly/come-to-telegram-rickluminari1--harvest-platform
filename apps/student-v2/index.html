@@ -460,19 +460,19 @@ function showPerformance() {
       const correct = ch.questions.filter(q => STATE.answers[q.id]?.correct).length
       const pct     = ans ? Math.round(correct/ans*100) : 0
       const col     = pct>=70?'#16a34a':pct>=50?'#d97706':'#dc2626'
-      return \`<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:10px;background:#f8fafc;margin-bottom:6px">
-        <span style="font-size:16px">\${ch.icon||'📂'}</span>
+      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:10px;background:#f8fafc;margin-bottom:6px">
+        <span style="font-size:16px">${ch.icon||'📂'}</span>
         <div style="flex:1">
-          <div style="font-weight:600;font-size:13px">\${ch.name}</div>
-          <div style="height:4px;background:#e2e8f0;border-radius:2px;margin-top:4px;overflow:hidden"><div style="width:\${ans?pct:0}%;height:100%;background:\${col};border-radius:2px"></div></div>
+          <div style="font-weight:600;font-size:13px">${ch.name}</div>
+          <div style="height:4px;background:#e2e8f0;border-radius:2px;margin-top:4px;overflow:hidden"><div style="width:${ans?pct:0}%;height:100%;background:${col};border-radius:2px"></div></div>
         </div>
-        <span style="font-size:12px;font-weight:700;color:\${col}">\${ans}/\${total} • \${pct}%</span>
-      </div>\`
+        <span style="font-size:12px;font-weight:700;color:${col}">${ans}/${total} • ${pct}%</span>
+      </div>`
     }).join('')
-    return \`<div style="margin-bottom:20px">
-      <div style="font-weight:800;font-size:15px;color:#1e293b;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #f1f5f9">\${sub.icon||'📚'} \${sub.name}</div>
-      \${chRows}
-    </div>\`
+    return `<div style="margin-bottom:20px">
+      <div style="font-weight:800;font-size:15px;color:#1e293b;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #f1f5f9">${sub.icon||'📚'} ${sub.name}</div>
+      ${chRows}
+    </div>`
   }).join('')
   body.innerHTML = rows || '<p style="text-align:center;color:#94a3b8;padding:20px">لا توجد بيانات بعد</p>'
   document.getElementById('performance-modal').classList.remove('hidden')
@@ -484,17 +484,17 @@ function showSchedule() {
   document.getElementById('schedule-body').innerHTML = STATE.subjects.map(sub => {
     const hrs = days.map((d,i) => {
       const val = schedule[sub.id]?.[i] || 0
-      return \`<div style="text-align:center">
-        <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">\${d.slice(0,3)}</div>
-        <input type="number" min="0" max="8" value="\${val}" 
-               id="sch-\${sub.id}-\${i}"
+      return `<div style="text-align:center">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">${d.slice(0,3)}</div>
+        <input type="number" min="0" max="8" value="${val}" 
+               id="sch-${sub.id}-${i}"
                style="width:36px;border:1px solid #e2e8f0;border-radius:6px;padding:4px;font-size:12px;text-align:center">
-      </div>\`
+      </div>`
     }).join('')
-    return \`<div class="schedule-subj">
-      <span style="font-weight:700;font-size:14px">\${sub.icon||'📚'} \${sub.name}</span>
-      <div style="display:flex;gap:6px">\${hrs}</div>
-    </div>\`
+    return `<div class="schedule-subj">
+      <span style="font-weight:700;font-size:14px">${sub.icon||'📚'} ${sub.name}</span>
+      <div style="display:flex;gap:6px">${hrs}</div>
+    </div>`
   }).join('')
   document.getElementById('schedule-modal').classList.remove('hidden')
 }
@@ -503,7 +503,7 @@ function saveSchedule() {
   const schedule = {}
   STATE.subjects.forEach(sub => {
     schedule[sub.id] = [0,1,2,3,4,5,6].map(i => {
-      const el = document.getElementById(\`sch-\${sub.id}-\${i}\`)
+      const el = document.getElementById(`sch-${sub.id}-${i}`)
       return el ? parseInt(el.value)||0 : 0
     })
   })
@@ -533,27 +533,27 @@ function showChallenges() {
   if (allAnswered >= 100) badges.push('📚 مثابر')
 
   const body = document.getElementById('challenges-body')
-  body.innerHTML = \`
+  body.innerHTML = `
     <div style="margin-bottom:20px">
       <div style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:12px">🎖️ الشارات المكتسبة</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
-        \${badges.length ? badges.map(b => \`<span class="badge-earned">\${b}</span>\`).join('') : '<p style="color:#94a3b8;font-size:13px">لم تكسب شارات بعد — استمر في الإجابة!</p>'}
+        ${badges.length ? badges.map(b => `<span class="badge-earned">${b}</span>`).join('') : '<p style="color:#94a3b8;font-size:13px">لم تكسب شارات بعد — استمر في الإجابة!</p>'}
       </div>
     </div>
     <div style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:12px">🎯 التحديات الجارية</div>
-    \${challenges.map(c => {
+    ${challenges.map(c => {
       const prog = Math.min(Math.round(c.current/c.target*100), 100)
       const done = prog >= 100
-      return \`<div class="challenge-item" style="\${done?'background:#f0fdf4;':''}">
-        <span class="challenge-icon">\${c.ic}</span>
+      return `<div class="challenge-item" style="${done?'background:#f0fdf4;':''}">
+        <span class="challenge-icon">${c.ic}</span>
         <div style="flex:1">
-          <div style="font-weight:600;font-size:13px;color:\${done?'#166534':'#1e293b'}">\${c.name} \${done?'✅':''}</div>
-          <div class="challenge-bar"><div class="challenge-fill" style="width:\${prog}%"></div></div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:2px">\${Math.min(c.current,c.target)} / \${c.target} \${c.unit}</div>
+          <div style="font-weight:600;font-size:13px;color:${done?'#166534':'#1e293b'}">${c.name} ${done?'✅':''}</div>
+          <div class="challenge-bar"><div class="challenge-fill" style="width:${prog}%"></div></div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px">${Math.min(c.current,c.target)} / ${c.target} ${c.unit}</div>
         </div>
-      </div>\`
+      </div>`
     }).join('')}
-  \`
+  `
   document.getElementById('challenges-modal').classList.remove('hidden')
 }
 
@@ -728,8 +728,8 @@ function renderQuestion(q) {
         ${chat.map(m=>`<div class="msg-wrap ${m.role==='user'?'user':''}"><div class="msg-bubble ${m.role==='user'?'user':'ai'}">${m.content}</div></div>`).join('')}
       </div>
       <div class="ai-input-row">
-        <input class="ai-input" id="ai-input-${q.id}" placeholder="اسأل عن السؤال..." onkeydown="if(event.key==='Enter')sendAI('${q.id}','${q.text.replace(/'/g,"\\'")}')">
-        <button class="ai-send" onclick="sendAI('${q.id}','${q.text.replace(/'/g,"\\'")}')">↑</button>
+        <input class="ai-input" id="ai-input-${q.id}" placeholder="اسأل عن السؤال..." onkeydown="if(event.key==='Enter')sendAI('${q.id}','${q.text.replace(/'/g,"\'")}')">
+        <button class="ai-send" onclick="sendAI('${q.id}','${q.text.replace(/'/g,"\'")}')">↑</button>
       </div>
     </div>` : ''
 
@@ -761,7 +761,7 @@ function renderQuestion(q) {
         ${imgHtml}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">${options}</div>
         <div class="actions">
-          <button class="abtn abtn-hint" onclick="getHint('${q.id}','${q.text.replace(/'/g,"\\'")}')">💡 تلميح ذكي</button>
+          <button class="abtn abtn-hint" onclick="getHint('${q.id}','${q.text.replace(/'/g,"\'")}')">💡 تلميح ذكي</button>
           <button class="abtn abtn-ans"  onclick="toggleAns('${q.id}')">🔍 ${ansOpen?'إخفاء':'عرض الإجابة'}</button>
           <button class="abtn abtn-ai"   onclick="toggleAI('${q.id}')">🤖 المساعد الذكي</button>
         </div>
