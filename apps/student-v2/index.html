@@ -150,7 +150,7 @@
   .home-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:900px; margin:0 auto; }
   .home-card { background:white; border-radius:20px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,.08); border:1px solid #f1f5f9; cursor:pointer; transition:transform .2s, box-shadow .2s; }
   .home-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.12); }
-  .home-card .card-icon { font-size:40px; margin-bottom:12px; }
+  .home-card .card-icon { width:48px; height:48px; margin-bottom:16px; color:#1d4ed8; }
   .home-card h3 { font-size:18px; font-weight:800; color:#1e293b; margin-bottom:6px; }
   .home-card p { font-size:13px; color:#64748b; line-height:1.5; }
   .home-card .card-arrow { margin-top:16px; color:#1d4ed8; font-size:13px; font-weight:700; }
@@ -205,9 +205,9 @@
       <div class="header-name"><h2>منصة هارفست</h2><p>التعليمية</p></div>
       <div class="header-logo"><img id="logo-img" src="https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195" alt="هارفست"></div>
       <div class="header-actions">
-        <button class="hbtn" onclick="goHome()">🏠 الرئيسية</button>
-        <button class="hbtn" onclick="toggleResults()">📊 نتائجي</button>
-        <button class="hbtn" onclick="openContact()">💬 تواصل</button>
+        <button class="hbtn" onclick="goHome()">الرئيسية</button>
+        <button class="hbtn" onclick="toggleResults()"><svg style="width:15px;height:15px;margin-left:4px;vertical-align:-2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> نتائجي</button>
+        <button class="hbtn" onclick="openContact()"><svg style="width:15px;height:15px;margin-left:4px;vertical-align:-2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 0 2 2z"/></svg> تواصل</button>
         <button class="hbtn danger" onclick="doLogout()">خروج</button>
       </div>
     </div>
@@ -217,31 +217,31 @@
   <!-- Home page -->
   <div id="home-page">
     <div class="home-welcome">
-      <h2 id="welcome-name">مرحباً! 👋</h2>
+      <h2 id="welcome-name">مرحباً!</h2>
       <p>اختر من أين تبدأ اليوم</p>
     </div>
     <div class="stats-row" id="home-stats"></div>
     <div class="home-grid">
       <div class="home-card" onclick="showSubjects()">
-        <div class="card-icon">📚</div>
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
         <h3>موادي</h3>
         <p>ادرس الأسئلة، شاهد شروح المعلمين، وتتبع تقدمك في كل مادة</p>
         <div class="card-arrow">ابدأ الدراسة ←</div>
       </div>
       <div class="home-card" onclick="showPerformance()">
-        <div class="card-icon">📊</div>
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></div>
         <h3>تقارير الأداء</h3>
         <p>اطّلع على نسب نجاحك، أكثر المواضيع قوة وأكثرها احتياجاً للمراجعة</p>
         <div class="card-arrow">عرض التقارير ←</div>
       </div>
       <div class="home-card" onclick="showSchedule()">
-        <div class="card-icon">📅</div>
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
         <h3>جدول مذاكرتي</h3>
         <p>نظّم وقتك وحدد ساعات الدراسة لكل مادة طوال الأسبوع</p>
         <div class="card-arrow">إنشاء الجدول ←</div>
       </div>
       <div class="home-card" onclick="showChallenges()">
-        <div class="card-icon">🏆</div>
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
         <h3>التحديات والإنجازات</h3>
         <p>اكسب الشارات، تحدَّ نفسك بأهداف يومية، وتسلّق سلّم المتفوقين</p>
         <div class="card-arrow">عرض التحديات ←</div>
@@ -253,7 +253,7 @@
   <div id="performance-modal" class="modal-overlay hidden">
     <div class="modal-box">
       <div class="modal-header">
-        <span style="color:white;font-weight:700;font-size:18px">📊 تقارير الأداء</span>
+        <span style="color:white;font-weight:700;font-size:18px">تقارير الأداء</span>
         <button class="modal-close" onclick="document.getElementById('performance-modal').classList.add('hidden')">×</button>
       </div>
       <div class="modal-body" id="performance-body" style="max-height:70vh;overflow-y:auto"></div>
@@ -264,13 +264,13 @@
   <div id="schedule-modal" class="modal-overlay hidden">
     <div class="modal-box">
       <div class="modal-header">
-        <span style="color:white;font-weight:700;font-size:18px">📅 جدول المذاكرة</span>
+        <span style="color:white;font-weight:700;font-size:18px">جدول المذاكرة</span>
         <button class="modal-close" onclick="document.getElementById('schedule-modal').classList.add('hidden')">×</button>
       </div>
       <div class="modal-body">
         <p style="color:#64748b;font-size:13px;margin-bottom:16px">حدد عدد ساعات الدراسة لكل مادة يومياً</p>
         <div id="schedule-body"></div>
-        <button onclick="saveSchedule()" style="width:100%;margin-top:16px;padding:12px;background:#1d4ed8;color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer">💾 حفظ الجدول</button>
+        <button onclick="saveSchedule()" style="width:100%;margin-top:16px;padding:12px;background:#1d4ed8;color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer">حفظ الجدول</button>
       </div>
     </div>
   </div>
@@ -279,7 +279,7 @@
   <div id="challenges-modal" class="modal-overlay hidden">
     <div class="modal-box">
       <div class="modal-header">
-        <span style="color:white;font-weight:700;font-size:18px">🏆 التحديات والإنجازات</span>
+        <span style="color:white;font-weight:700;font-size:18px">التحديات والإنجازات</span>
         <button class="modal-close" onclick="document.getElementById('challenges-modal').classList.add('hidden')">×</button>
       </div>
       <div class="modal-body" id="challenges-body"></div>
@@ -313,7 +313,7 @@
 <div id="results-modal" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-header">
-      <span style="color:white;font-weight:700;font-size:18px">📊 نتائجك</span>
+      <span style="color:white;font-weight:700;font-size:18px">نتائجك</span>
       <button class="modal-close" onclick="toggleResults()">×</button>
     </div>
     <div class="modal-body">
@@ -426,17 +426,17 @@ function showHome() {
   document.getElementById('home-page').style.display = 'block'
   document.getElementById('subjects-view').style.display = 'none'
   // Welcome
-  document.getElementById('welcome-name').textContent = 'مرحباً، ' + (STATE.profile?.full_name || '') + '! 👋'
+  document.getElementById('welcome-name').textContent = 'مرحباً، ' + (STATE.profile?.full_name || '') + '!'
   // Stats
   const allAnswered = Object.keys(STATE.answers).length
   const allCorrect  = Object.values(STATE.answers).filter(a => a.correct).length
   const totalQ      = STATE.subjects.reduce((s, sub) => s + sub.chapters.reduce((s2, ch) => s2 + ch.questions.length, 0), 0)
   const pct         = allAnswered ? Math.round(allCorrect/allAnswered*100) : 0
   document.getElementById('home-stats').innerHTML = [
-    { ic:'📚', val: STATE.subjects.length,  lbl:'مادة مسجّل بها', c:'#1d4ed8' },
-    { ic:'❓', val: totalQ,                  lbl:'سؤال إجمالي',     c:'#7c3aed' },
-    { ic:'✅', val: allAnswered,             lbl:'سؤال أجبته',      c:'#16a34a' },
-    { ic:'🎯', val: pct+'%',                lbl:'نسبة النجاح',     c: pct>=70?'#16a34a':pct>=50?'#d97706':'#dc2626' },
+    { ic:'book', val: STATE.subjects.length,  lbl:'مادة مسجّل بها', c:'#1d4ed8' },
+    { ic:'question', val: totalQ,            lbl:'سؤال إجمالي',     c:'#7c3aed' },
+    { ic:'check2', val: allAnswered,         lbl:'سؤال أجبته',      c:'#16a34a' },
+    { ic:'target', val: pct+'%',                lbl:'نسبة النجاح',     c: pct>=70?'#16a34a':pct>=50?'#d97706':'#dc2626' },
   ].map(s => `<div class="stat-mini"><div class="s-val" style="color:${s.c}">${s.val}</div><div style="font-size:18px">${s.ic}</div><div class="s-lbl">${s.lbl}</div></div>`).join('')
 }
 
@@ -461,7 +461,7 @@ function showPerformance() {
       const pct     = ans ? Math.round(correct/ans*100) : 0
       const col     = pct>=70?'#16a34a':pct>=50?'#d97706':'#dc2626'
       return `<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:10px;background:#f8fafc;margin-bottom:6px">
-        <span style="font-size:16px">${ch.icon||'📂'}</span>
+        <span style="font-size:16px">${ch.icon||''}</span>
         <div style="flex:1">
           <div style="font-weight:600;font-size:13px">${ch.name}</div>
           <div style="height:4px;background:#e2e8f0;border-radius:2px;margin-top:4px;overflow:hidden"><div style="width:${ans?pct:0}%;height:100%;background:${col};border-radius:2px"></div></div>
@@ -470,7 +470,7 @@ function showPerformance() {
       </div>`
     }).join('')
     return `<div style="margin-bottom:20px">
-      <div style="font-weight:800;font-size:15px;color:#1e293b;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #f1f5f9">${sub.icon||'📚'} ${sub.name}</div>
+      <div style="font-weight:800;font-size:15px;color:#1e293b;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #f1f5f9">${sub.icon||''} ${sub.name}</div>
       ${chRows}
     </div>`
   }).join('')
@@ -492,7 +492,7 @@ function showSchedule() {
       </div>`
     }).join('')
     return `<div class="schedule-subj">
-      <span style="font-weight:700;font-size:14px">${sub.icon||'📚'} ${sub.name}</span>
+      <span style="font-weight:700;font-size:14px">${sub.icon||''} ${sub.name}</span>
       <div style="display:flex;gap:6px">${hrs}</div>
     </div>`
   }).join('')
@@ -509,7 +509,7 @@ function saveSchedule() {
   })
   localStorage.setItem('harvest_schedule', JSON.stringify(schedule))
   document.getElementById('schedule-modal').classList.add('hidden')
-  alert('✅ تم حفظ الجدول!')
+  alert('تم حفظ الجدول')
 }
 
 function showChallenges() {
@@ -519,35 +519,35 @@ function showChallenges() {
   const streak      = parseInt(localStorage.getItem('harvest_streak')||'0')
 
   const challenges = [
-    { ic:'🎯', name:'أجب على 10 أسئلة',    target:10,  current:allAnswered, unit:'سؤال' },
-    { ic:'⭐', name:'احصل على 80% صحيح',   target:80,  current:pct,         unit:'%' },
-    { ic:'🔥', name:'3 أيام متواصلة',       target:3,   current:streak,      unit:'يوم' },
-    { ic:'📚', name:'أكمل فصلاً كاملاً',   target:100, current:0,           unit:'%' },
-    { ic:'🏆', name:'أجب على 50 سؤال صح',  target:50,  current:allCorrect,  unit:'سؤال' },
+    { ic:'target', name:'أجب على 10 أسئلة',    target:10,  current:allAnswered, unit:'سؤال' },
+    { ic:'star', name:'احصل على 80% صحيح',   target:80,  current:pct,         unit:'%' },
+    { ic:'flame', name:'3 أيام متواصلة',       target:3,   current:streak,      unit:'يوم' },
+    { ic:'book', name:'أكمل فصلاً كاملاً',   target:100, current:0,           unit:'%' },
+    { ic:'trophy', name:'أجب على 50 سؤال صح',  target:50,  current:allCorrect,  unit:'سؤال' },
   ]
 
   const badges = []
-  if (allAnswered >= 10) badges.push('🎯 مجيب')
-  if (pct >= 80)         badges.push('⭐ متفوق')
-  if (allCorrect >= 50)  badges.push('🏆 بطل')
-  if (allAnswered >= 100) badges.push('📚 مثابر')
+  if (allAnswered >= 10) badges.push('مجيب')
+  if (pct >= 80)         badges.push('متفوق')
+  if (allCorrect >= 50)  badges.push('بطل')
+  if (allAnswered >= 100) badges.push('مثابر')
 
   const body = document.getElementById('challenges-body')
   body.innerHTML = `
     <div style="margin-bottom:20px">
-      <div style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:12px">🎖️ الشارات المكتسبة</div>
+      <div style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:12px">الشارات المكتسبة</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
         ${badges.length ? badges.map(b => `<span class="badge-earned">${b}</span>`).join('') : '<p style="color:#94a3b8;font-size:13px">لم تكسب شارات بعد — استمر في الإجابة!</p>'}
       </div>
     </div>
-    <div style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:12px">🎯 التحديات الجارية</div>
+    <div style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:12px">التحديات الجارية</div>
     ${challenges.map(c => {
       const prog = Math.min(Math.round(c.current/c.target*100), 100)
       const done = prog >= 100
       return `<div class="challenge-item" style="${done?'background:#f0fdf4;':''}">
         <span class="challenge-icon">${c.ic}</span>
         <div style="flex:1">
-          <div style="font-weight:600;font-size:13px;color:${done?'#166534':'#1e293b'}">${c.name} ${done?'✅':''}</div>
+          <div style="font-weight:600;font-size:13px;color:${done?'#166534':'#1e293b'}">${c.name} ${done?'·':''}</div>
           <div class="challenge-bar"><div class="challenge-fill" style="width:${prog}%"></div></div>
           <div style="font-size:11px;color:#94a3b8;margin-top:2px">${Math.min(c.current,c.target)} / ${c.target} ${c.unit}</div>
         </div>
@@ -590,7 +590,7 @@ function renderSidebar() {
     const cC = c.questions.filter(q => STATE.answers[q.id]?.correct).length
     const cP = c.questions.length ? Math.round(cA/c.questions.length*100) : 0
     const isA = c.id === STATE.activeChapter
-    const examBadge = c.chapter_type === 'exam' ? `<span style="font-size:10px;font-weight:700;background:${isA?'rgba(255,255,255,.2)':'#fff7ed'};color:${isA?'white':'#c2410c'};padding:2px 6px;border-radius:4px">📝 اختبار</span>` : ''
+    const examBadge = c.chapter_type === 'exam' ? `<span style="font-size:10px;font-weight:700;background:${isA?'rgba(255,255,255,.2)':'#fff7ed'};color:${isA?'white':'#c2410c'};padding:2px 6px;border-radius:4px">اختبار</span>` : ''
     return `
     <button class="ch-btn ${isA?'active':''}" onclick="switchChapter('${c.id}')">
       <div class="ch-name">${c.icon||''} ${c.name}</div>
@@ -624,7 +624,7 @@ function renderQuestions() {
   const correct  = qs.filter(q => STATE.answers[q.id]?.correct).length
   const pct      = qs.length ? Math.round(answered/qs.length*100) : 0
   document.getElementById('progress-fill').style.width = pct + '%'
-  document.getElementById('progress-text').textContent = `${answered}/${qs.length} (${correct}✅)`
+  document.getElementById('progress-text').textContent = `${answered}/${qs.length} (${correct} ✓)`
 
   // Year filters
   document.getElementById('year-filters').innerHTML = ['all',...years].map(y =>
@@ -640,11 +640,11 @@ function renderQuestions() {
   if (hasTimer && !STATE.examStarted) {
     examStart.innerHTML = `
       <div style="text-align:center;padding:40px 24px">
-        <div style="font-size:48px;margin-bottom:12px">📝</div>
+        <div style="font-size:48px;margin-bottom:12px"><svg style="width:48px;height:48px" viewBox="0 0 24 24" fill="none" stroke="#c2410c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
         <div style="font-size:22px;font-weight:900;color:#9a3412;margin-bottom:8px">${ch.name}</div>
         <div style="color:#c2410c;font-size:14px;margin-bottom:6px">مدة الاختبار: <strong>${Math.round((ch.timer_duration||1800)/60)} دقيقة</strong></div>
         <div style="color:#c2410c;font-size:14px;margin-bottom:24px">عدد الأسئلة: <strong>${qs.length}</strong></div>
-        <button class="start-btn" onclick="startExam(${ch.timer_duration||1800},'${ch.name}')">🚀 ابدأ الاختبار</button>
+        <button class="start-btn" onclick="startExam(${ch.timer_duration||1800},'${ch.name}')">ابدأ الاختبار</button>
       </div>`
     examStart.classList.remove('hidden')
     examBar.classList.add('hidden')
@@ -656,7 +656,7 @@ function renderQuestions() {
 
   if (hasTimer && STATE.examStarted) {
     examBar.classList.remove('hidden')
-    document.getElementById('exam-ch-name').textContent = '📝 ' + ch.name
+    document.getElementById('exam-ch-name').textContent = ch.name
   } else {
     examBar.classList.add('hidden')
   }
@@ -679,9 +679,9 @@ function renderQuestion(q) {
   const needImg = q.image_url === '__NEEDS_IMAGE__'
 
   const badges = `
-    <span class="badge badge-num">س ${q.num}</span>
+    <span class="badge badge-num">س${q.num}</span>
     ${q.year ? `<span class="badge badge-year">${q.year}</span>` : ''}
-    ${isAns ? `<span class="badge ${ans.correct?'badge-correct':'badge-wrong'}">${ans.correct?'✅ صحيح':'❌ خطأ'}</span>` : ''}`
+    ${isAns ? `<span class="badge ${ans.correct?'badge-correct':'badge-wrong'}">${ans.correct?'صح':'خطأ'}</span>` : ''}`
 
   const options = [...(q.options||[])].sort((a,b)=>a.order_num-b.order_num).map(opt => {
     let cls = ''
@@ -695,24 +695,24 @@ function renderQuestion(q) {
     <button class="option ${cls}" onclick="doAnswer('${q.id}','${opt.id}',${opt.is_correct})" ${isAns?'disabled':''}>
       <span class="option-letter">${opt.letter}</span>
       <span class="option-text">${opt.text}</span>
-      ${isAns && opt.is_correct ? '<span>✅</span>' : ''}
-      ${isAns && isSel && !opt.is_correct ? '<span>❌</span>' : ''}
+      ${isAns && opt.is_correct ? '<svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+      ${isAns && isSel && !opt.is_correct ? '<svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' : ''}
     </button>`
   }).join('')
 
   const imgHtml = needImg
-    ? `<div style="background:#f8fafc;border:2px dashed #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;color:#94a3b8;font-size:13px">🖼️ صورة قيد الإضافة</div>`
+    ? `<div style="background:#f8fafc;border:2px dashed #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;color:#94a3b8;font-size:13px">صورة قيد الإضافة</div>`
     : (q.image_url ? `<img src="${q.image_url}" style="max-height:200px;border-radius:12px;margin-bottom:16px;border:1px solid #f1f5f9">` : '')
 
   const hintPanel = hint ? `
     <div class="panel panel-hint">
-      <div class="panel-title">💡 تلميح ذكي:</div>
+      <div class="panel-title">تلميح:</div>
       <div style="font-size:13px;color:#78350f;line-height:1.6">${hint}</div>
     </div>` : ''
 
   const ansPanel = ansOpen ? `
     <div class="panel panel-ans">
-      <div class="panel-title">🔍 الإجابة الصحيحة:</div>
+      <div class="panel-title"><svg style="width:13px;height:13px;margin-left:4px;vertical-align:-1px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> الإجابة الصحيحة:</div>
       ${q.options.filter(o=>o.is_correct).map(o=>`<div style="font-weight:700;color:#1e3a8a;font-size:14px">${o.letter} — ${o.text}</div>`).join('')}
       ${q.ans_text ? `<div style="font-size:12px;color:#3b82f6;margin-top:6px">${q.ans_text}</div>` : ''}
     </div>` : ''
@@ -720,7 +720,7 @@ function renderQuestion(q) {
   const aiPanel = isAiOp ? `
     <div class="panel-ai">
       <div class="ai-header">
-        <span>🤖</span>
+        <span><svg style="width:16px;height:16px;vertical-align:-3px" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="15" x2="8" y2="15.01"/><line x1="16" y1="15" x2="16" y2="15.01"/></svg></span>
         <span style="color:white;font-weight:700;font-size:13px">المساعد الذكي</span>
       </div>
       <div class="ai-messages" id="ai-msgs-${q.id}">
@@ -735,11 +735,11 @@ function renderQuestion(q) {
 
   const videoCol = `
     <div class="v-col">
-      <div class="v-header">🎬 <span>شرح المعلم</span></div>
+      <div class="v-header"><svg style="width:16px;height:16px;vertical-align:-3px" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> <span>شرح المعلم</span></div>
       ${hasVid ? (vidOpen ? `
         <div class="v-video-wrap">
           <video src="${exp.video_url}" controls></video>
-          ${exp.text_note ? `<p style="font-size:11px;color:#065f46;margin-top:8px">✏️ ${exp.text_note}</p>` : ''}
+          ${exp.text_note ? `<p style="font-size:11px;color:#065f46;margin-top:8px">${exp.text_note}</p>` : ''}
           <button class="v-hide" onclick="toggleVideo('${q.id}')">▲ إخفاء</button>
         </div>` : `
         <button class="v-play-btn" onclick="toggleVideo('${q.id}')">
@@ -747,7 +747,7 @@ function renderQuestion(q) {
           <span class="v-label">اضغط لمشاهدة<br>شرح المعلم</span>
         </button>`) : `
         <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:8px">
-          <div style="width:48px;height:48px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:22px">❌</div>
+          <div style="width:48px;height:48px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:22px"><svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
           <span style="font-size:12px;font-weight:700;color:#dc2626">لا يوجد شرح</span>
         </div>`}
     </div>`
@@ -761,9 +761,9 @@ function renderQuestion(q) {
         ${imgHtml}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">${options}</div>
         <div class="actions">
-          <button class="abtn abtn-hint" onclick="getHint('${q.id}','${q.text.replace(/'/g,"\'")}')">💡 تلميح ذكي</button>
-          <button class="abtn abtn-ans"  onclick="toggleAns('${q.id}')">🔍 ${ansOpen?'إخفاء':'عرض الإجابة'}</button>
-          <button class="abtn abtn-ai"   onclick="toggleAI('${q.id}')">🤖 المساعد الذكي</button>
+          <button class="abtn abtn-hint" onclick="getHint('${q.id}','${q.text.replace(/'/g,"\'")}')"><svg style="width:13px;height:13px;margin-left:4px;vertical-align:-1px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg> تلميح ذكي</button>
+          <button class="abtn abtn-ans"  onclick="toggleAns('${q.id}')"><svg style="width:13px;height:13px;margin-left:4px;vertical-align:-1px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> ${ansOpen?'إخفاء':'عرض الإجابة'}</button>
+          <button class="abtn abtn-ai"   onclick="toggleAI('${q.id}')"><svg style="width:13px;height:13px;margin-left:4px;vertical-align:-1px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="15" x2="8" y2="15.01"/><line x1="16" y1="15" x2="16" y2="15.01"/></svg> المساعد الذكي</button>
         </div>
       </div>
       ${videoCol}
@@ -855,14 +855,14 @@ function reRenderCard(qid) {
   const correct  = qs.filter(q => STATE.answers[q.id]?.correct).length
   const pct      = qs.length ? Math.round(answered/qs.length*100) : 0
   document.getElementById('progress-fill').style.width = pct + '%'
-  document.getElementById('progress-text').textContent = `${answered}/${qs.length} (${correct}✅)`
+  document.getElementById('progress-text').textContent = `${answered}/${qs.length} (${correct} ✓)`
 }
 
 // ── Exam timer ─────────────────────────────────────────────────────────────────
 function startExam(duration, name) {
   STATE.examStarted = true
   STATE.examTimeLeft = duration
-  document.getElementById('exam-ch-name').textContent = '📝 ' + name
+  document.getElementById('exam-ch-name').textContent = name
   document.getElementById('exam-start').classList.add('hidden')
   renderQuestions()
   runTimer()
@@ -895,12 +895,22 @@ function toggleResults() {
     const answered = qs.filter(q => STATE.answers[q.id]).length
     const correct  = qs.filter(q => STATE.answers[q.id]?.correct).length
     const pct      = answered ? Math.round(correct/answered*100) : 0
-    const level = answered < 3 ? {t:'جاري التقييم',c:'#64748b'} : pct >= 90 ? {t:'ممتاز 🌟',c:'#16a34a'} : pct >= 70 ? {t:'جيد جداً ⭐',c:'#1a4fa8'} : pct >= 50 ? {t:'جيد 📈',c:'#d97706'} : {t:'يحتاج مراجعة 📚',c:'#dc2626'}
+    const level = answered < 3 ? {t:'جاري التقييم',c:'#64748b'} : pct >= 90 ? {t:'ممتاز',c:'#16a34a'} : pct >= 70 ? {t:'جيد جداً',c:'#1a4fa8'} : pct >= 50 ? {t:'جيد',c:'#d97706'} : {t:'يحتاج مراجعة',c:'#dc2626'}
     document.getElementById('stats-grid').innerHTML = [
-      ['📝','أجبت',answered,'#0a2d6e'], ['✅','صحيح',correct,'#16a34a'],
-      ['❌','خطأ',answered-correct,'#dc2626'], ['🎯','النسبة',pct+'%',level.c]
-    ].map(([ic,lb,vl,cl])=>`<div class="stat-box"><div class="stat-icon">${ic}</div><div class="stat-val" style="color:${cl}">${vl}</div><div class="stat-label">${lb}</div></div>`).join('')
-    document.getElementById('level-bar').innerHTML = `<span style="font-size:24px">🏆</span><span style="font-weight:700">مستواك: <span style="color:${level.c}">${level.t}</span></span>`
+      ['edit','أجبت',answered,'#0a2d6e'], ['check','صحيح',correct,'#16a34a'],
+      ['x','خطأ',answered-correct,'#dc2626'], ['target','النسبة',pct+'%',level.c]
+    ].map(([ic,lb,vl,cl])=>{
+      const icons = {
+        question: `<svg viewBox="0 0 24 24" fill="none" stroke="${cl}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        check2: `<svg viewBox="0 0 24 24" fill="none" stroke="${cl}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><polyline points="20 6 9 17 4 12"/></svg>`,
+        edit: `<svg viewBox="0 0 24 24" fill="none" stroke="${cl}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+        check: `<svg viewBox="0 0 24 24" fill="none" stroke="${cl}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><polyline points="20 6 9 17 4 12"/></svg>`,
+        x: `<svg viewBox="0 0 24 24" fill="none" stroke="${cl}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+        target: `<svg viewBox="0 0 24 24" fill="none" stroke="${cl}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`
+      };
+      return `<div class="stat-box"><div class="stat-icon">${icons[ic]||ic}</div><div class="stat-val" style="color:${cl}">${vl}</div><div class="stat-label">${lb}</div></div>`;
+    }).join('')
+    document.getElementById('level-bar').innerHTML = `<span style="font-size:24px"><svg style="width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span><span style="font-weight:700">مستواك: <span style="color:${level.c}">${level.t}</span></span>`
   }
   modal.classList.toggle('hidden')
 }
@@ -908,12 +918,18 @@ function toggleResults() {
 function openContact() {
   const s = STATE.siteSettings
   document.getElementById('contact-body').innerHTML = [
-    {ic:'📧',lb:'البريد الإلكتروني',val:s.CONTACT_EMAIL||'info@harvste.com',fn:`window.open('mailto:${s.CONTACT_EMAIL||'info@harvste.com'}')`},
-    {ic:'💬',lb:'واتساب',val:'تواصل عبر واتساب',fn:`window.open('https://wa.me/${s.CONTACT_WHATSAPP||'966500000000'}')`},
-    {ic:'🌐',lb:'الموقع الرسمي',val:s.CONTACT_WEBSITE||'harvste.com',fn:`window.open('${s.CONTACT_WEBSITE||'https://www.harvste.com'}')`},
-  ].map(item=>`
+    {ic:'mail',lb:'البريد الإلكتروني',val:s.CONTACT_EMAIL||'info@harvste.com',fn:`window.open('mailto:${s.CONTACT_EMAIL||'info@harvste.com'}')`},
+    {ic:'chat',lb:'واتساب',val:'تواصل عبر واتساب',fn:`window.open('https://wa.me/${s.CONTACT_WHATSAPP||'966500000000'}')`},
+    {ic:'web',lb:'الموقع الرسمي',val:s.CONTACT_WEBSITE||'harvste.com',fn:`window.open('${s.CONTACT_WEBSITE||'https://www.harvste.com'}')`},
+  ].map(item=>{
+  const contactIcons = {
+    mail: `<svg viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
+    chat: `<svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 0 2 2z"/></svg>`,
+    web: `<svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`
+  };
+  return `
     <button onclick="${item.fn}" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1px solid #e2e8f0;background:white;cursor:pointer;text-align:right;width:100%;margin-bottom:10px">
-      <span style="font-size:24px">${item.ic}</span>
+      <span style="font-size:24px">${contactIcons[item.ic]||item.ic}</span>
       <div><div style="font-weight:600;font-size:14px;color:#1e293b">${item.lb}</div><div style="font-size:12px;color:#94a3b8">${item.val}</div></div>
     </button>`).join('')
   document.getElementById('contact-modal').classList.remove('hidden')
