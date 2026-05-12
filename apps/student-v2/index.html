@@ -11,7 +11,7 @@
   body { background: #f1f5f9; direction: rtl; }
 
   /* Subject & section picker screens */
-  .picker-screen { display:none; flex:1; overflow-y:auto; background:#f0f4ff; padding:24px; }
+  .picker-screen { display:none; overflow-y:auto; background:#f0f4ff; padding:28px 32px; width:100%; }
   .picker-screen.active { display:block; }
   .picker-title { font-size:20px; font-weight:800; color:#1e293b; margin-bottom:6px; }
   .picker-sub { font-size:13px; color:#64748b; margin-bottom:24px; }
@@ -535,7 +535,13 @@
       </div>
     </div>
 
-    <!-- Subject picker screen -->
+    <!-- Chapters sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-title">الفصول</div>
+      <div id="chapters-list"></div>
+    </div>
+    <div class="main">
+      <!-- Subject picker screen -->
     <div class="picker-screen" id="subject-picker">
       <button class="back-btn" onclick="goHome()">← الرئيسية</button>
       <div class="picker-title">اختر المادة</div>
@@ -590,12 +596,6 @@
       <div class="sidebar-title">الفصول</div>
       <div id="chapters-list"></div>
     </div>
-    <!-- Chapters sidebar -->
-    <div class="sidebar">
-      <div class="sidebar-title">الفصول</div>
-      <div id="chapters-list"></div>
-    </div>
-    <div class="main">
       <div class="sticky-bar">
         <div class="progress-row">
           <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
@@ -813,15 +813,23 @@ function showLessons() {
 }
 
 function hideSidebars() {
-  document.querySelector('.sidebar').style.display = 'none'
+  const chSidebar = document.querySelector('#subjects-view .sidebar')
+  if (chSidebar) chSidebar.style.display = 'none'
   document.getElementById('questions-list').innerHTML = ''
-  document.getElementById('exam-start').classList.add('hidden')
-  document.getElementById('exam-timer-bar').classList.add('hidden')
+  const examStart = document.getElementById('exam-start')
+  const examBar   = document.getElementById('exam-timer-bar')
+  if (examStart) examStart.classList.add('hidden')
+  if (examBar)   examBar.classList.add('hidden')
+  // Also hide sticky bar and progress
+  const stickyBar = document.querySelector('.sticky-bar')
+  if (stickyBar) stickyBar.style.display = 'none'
 }
 
 function showChaptersSidebar() {
-  document.querySelector('.sidebar').style.display = 'flex'
-  document.querySelector('.sidebar').style.flexDirection = 'column'
+  const chSidebar = document.querySelector('#subjects-view .sidebar')
+  if (chSidebar) { chSidebar.style.display = 'flex'; chSidebar.style.flexDirection = 'column'; }
+  const stickyBar = document.querySelector('.sticky-bar')
+  if (stickyBar) stickyBar.style.display = 'block'
 }
 
 function showPerformance() {
