@@ -778,24 +778,30 @@ function showSubjectPicker() {
   document.getElementById('subject-picker').classList.add('active')
   document.getElementById('section-picker').classList.remove('active')
   hideSidebars()
-  // Render subject cards
-  document.getElementById('subject-cards-list').innerHTML = STATE.subjects.map(sub => {
-    const totalQ   = sub.chapters.reduce((t, ch) => t + ch.questions.length, 0)
-    const answered = sub.chapters.reduce((t, ch) => t + ch.questions.filter(q => STATE.answers[q.id]).length, 0)
-    const pct      = totalQ ? Math.round(answered / totalQ * 100) : 0
-    return `<div class="subject-card" onclick="selectSubject('${sub.id}')">`
-      + `<div class="s-icon">${sub.icon||'📚'}</div>`
-      + `<div class="s-name">${sub.name}</div>`
-      + `<div class="s-meta">${sub.chapters.length} فصل • ${totalQ} سؤال</div>`
-      + `<div class="s-pct">${pct}% مكتمل</div></div>`
-
-      + '<div class="s-name">' + sub.name + '</div>'
-      + '<div class="s-meta">' + sub.chapters.length + ' فصل • ' + totalQ + ' سؤال</div>'
-      + '<div class="s-pct">' + pct + '% مكتمل</div>'
+  const iconBgs    = ['#eff6ff','#f0fdf4','#f5f3ff','#fff1f2','#fffbeb','#ecfdf5']
+  const iconColors = ['#1d4ed8','#15803d','#6d28d9','#be123c','#b45309','#0f766e']
+  document.getElementById('subject-cards-list').innerHTML = STATE.subjects.map((sub, i) => {
+    const totalQ    = sub.chapters.reduce((t, ch) => t + ch.questions.length, 0)
+    const answered  = sub.chapters.reduce((t, ch) => t + ch.questions.filter(q => STATE.answers[q.id]).length, 0)
+    const correct   = sub.chapters.reduce((t, ch) => t + ch.questions.filter(q => STATE.answers[q.id]?.correct).length, 0)
+    const lessonChs = sub.chapters.filter(ch => ch.chapter_type !== 'exam').length
+    const examChs   = sub.chapters.filter(ch => ch.chapter_type === 'exam').length
+    const pct       = totalQ ? Math.round(answered / totalQ * 100) : 0
+    const bg        = iconBgs[i % iconBgs.length]
+    const col       = iconColors[i % iconColors.length]
+    const pctCol    = pct >= 70 ? '#15803d' : pct >= 40 ? '#b45309' : '#1d4ed8'
+    const examTag   = examChs > 0 ? '<span class="sc-tag orange">' + examChs + ' اختبار</span>' : ''
+    return '<div class="subject-card">'
+      + '<div class="sc-icon-wrap" style="background:' + bg + ';color:' + col + '">' + (sub.icon || '📚') + '</div>'
+      + '<div class="sc-info">'
+      + '<div class="sc-name">' + sub.name + '</div>'
+      + '<div class="sc-tags"><span class="sc-tag blue">' + sub.chapters.length + ' فصل</span><span class="sc-tag green">' + lessonChs + ' شرح</span>' + examTag + '<span class="sc-tag purple">' + totalQ + ' سؤال</span></div>'
+      + '<div class="sc-prog-row"><div class="sc-prog-track"><div class="sc-prog-fill" style="width:' + pct + '%;background:' + col + '"></div></div><span class="sc-prog-text" style="color:' + pctCol + '">' + pct + '% • ' + correct + '/' + totalQ + ' صح</span></div>'
+      + '</div>'
+      + '<button onclick="selectSubject(\'' + sub.id + '\')" style="background:#1d4ed8;color:white;border:none;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">الدخول للدورة ←</button>'
       + '</div>'
   }).join('')
 }
-
 function selectSubject(sid) {
   STATE.activeSubject = sid
   const sub = STATE.subjects.find(s => s.id === sid)
