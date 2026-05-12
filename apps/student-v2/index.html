@@ -15,44 +15,23 @@
   .picker-screen.active { display:block; }
   .picker-title { font-size:20px; font-weight:800; color:#1e293b; margin-bottom:6px; }
   .picker-sub { font-size:13px; color:#64748b; margin-bottom:24px; }
-  .subject-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
-  .subject-card { border-radius:20px; padding:0; cursor:pointer; border:none; transition:all .2s; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.08); }
-  .subject-card:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,.15); }
-  .sc-header { padding:24px 20px 16px; position:relative; }
-  .sc-header .s-icon { font-size:42px; margin-bottom:10px; display:block; }
-  .sc-header .s-name { font-size:20px; font-weight:800; color:white; }
-  .sc-header .s-teacher { font-size:13px; color:rgba(255,255,255,.8); margin-top:4px; display:flex; align-items:center; gap:5px; }
-  .sc-header .s-progress-ring { position:absolute; top:16px; left:16px; width:52px; height:52px; }
-  .sc-body { background:white; padding:16px 20px; }
-  .sc-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
-  .sc-stat { text-align:center; background:#f8fafc; border-radius:10px; padding:8px 6px; }
-  .sc-stat .sv { font-size:18px; font-weight:800; color:#1e293b; }
-  .sc-stat .sl { font-size:10px; color:#94a3b8; margin-top:1px; }
-  .sc-progress { height:6px; background:#f1f5f9; border-radius:3px; overflow:hidden; margin-bottom:10px; }
-  .sc-progress-fill { height:100%; border-radius:3px; transition:width .5s; }
-  .sc-action { display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:600; }
-
-  /* Card color themes */
-  .sc-theme-blue   .sc-header { background:linear-gradient(135deg,#1d4ed8,#3b82f6); }
-  .sc-theme-teal   .sc-header { background:linear-gradient(135deg,#0f766e,#14b8a6); }
-  .sc-theme-purple .sc-header { background:linear-gradient(135deg,#6d28d9,#8b5cf6); }
-  .sc-theme-rose   .sc-header { background:linear-gradient(135deg,#be123c,#f43f5e); }
-  .sc-theme-amber  .sc-header { background:linear-gradient(135deg,#b45309,#f59e0b); }
-  .sc-theme-green  .sc-header { background:linear-gradient(135deg,#15803d,#22c55e); }
-
-  .sc-theme-blue   .sc-action { color:#1d4ed8; }
-  .sc-theme-teal   .sc-action { color:#0f766e; }
-  .sc-theme-purple .sc-action { color:#6d28d9; }
-  .sc-theme-rose   .sc-action { color:#be123c; }
-  .sc-theme-amber  .sc-action { color:#b45309; }
-  .sc-theme-green  .sc-action { color:#15803d; }
-
-  .sc-theme-blue   .sc-progress-fill { background:#1d4ed8; }
-  .sc-theme-teal   .sc-progress-fill { background:#0f766e; }
-  .sc-theme-purple .sc-progress-fill { background:#6d28d9; }
-  .sc-theme-rose   .sc-progress-fill { background:#be123c; }
-  .sc-theme-amber  .sc-progress-fill { background:#b45309; }
-  .sc-theme-green  .sc-progress-fill { background:#15803d; }
+  .subject-cards { display:grid; gap:12px; max-width:760px; }
+  .subject-card { background:white; border-radius:16px; border:1px solid #e2e8f0; padding:20px; cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:16px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+  .subject-card:hover { box-shadow:0 4px 16px rgba(29,78,216,.12); border-color:#bfdbfe; transform:translateX(-4px); }
+  .sc-icon-wrap { width:60px; height:60px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; }
+  .sc-info { flex:1; min-width:0; }
+  .sc-name { font-size:18px; font-weight:800; color:#1e293b; margin-bottom:6px; }
+  .sc-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .sc-tag { font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; }
+  .sc-tag.blue   { background:#eff6ff; color:#1d4ed8; }
+  .sc-tag.orange { background:#fff7ed; color:#c2410c; }
+  .sc-tag.green  { background:#f0fdf4; color:#15803d; }
+  .sc-tag.purple { background:#f5f3ff; color:#6d28d9; }
+  .sc-prog-row { display:flex; align-items:center; gap:10px; }
+  .sc-prog-track { flex:1; height:5px; background:#f1f5f9; border-radius:3px; overflow:hidden; }
+  .sc-prog-fill { height:100%; border-radius:3px; background:#1d4ed8; transition:width .5s; }
+  .sc-prog-text { font-size:12px; font-weight:700; color:#475569; white-space:nowrap; }
+  .sc-arrow { flex-shrink:0; color:#cbd5e1; }
 
   .section-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
   .section-card { background:white; border-radius:16px; padding:20px; cursor:pointer; border:1.5px solid #e2e8f0; transition:all .2s; }
@@ -1139,8 +1118,8 @@ function renderQuestion(q) {
         ${chat.map(m=>`<div class="msg-wrap ${m.role==='user'?'user':''}"><div class="msg-bubble ${m.role==='user'?'user':'ai'}">${m.content}</div></div>`).join('')}
       </div>
       <div class="ai-input-row">
-        <input class="ai-input" id="ai-input-${q.id}" placeholder="اسأل عن السؤال..." onkeydown="if(event.key==='Enter')sendAI('${q.id}','${q.text.replace(/'/g,"\'")}')">
-        <button class="ai-send" onclick="sendAI('${q.id}','${q.text.replace(/'/g,"\'")}')">↑</button>
+        <input class="ai-input" id="ai-input-${q.id}" placeholder="اسأل عن السؤال..." onkeydown="if(event.key==='Enter')sendAIById('${q.id}')">
+        <button class="ai-send" onclick="sendAIById('${q.id}')">↑</button>
       </div>
     </div>` : ''
 
@@ -1172,7 +1151,7 @@ function renderQuestion(q) {
         ${imgHtml}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">${options}</div>
         <div class="actions">
-          <button class="abtn abtn-hint" onclick="getHint('${q.id}','${q.text.replace(/'/g,"\'")}')">💡 تلميح ذكي</button>
+          <button class="abtn abtn-hint" onclick="getHintById('${q.id}')">💡 تلميح ذكي</button>
           <button class="abtn abtn-ans"  onclick="toggleAns('${q.id}')">🔍 ${ansOpen?'إخفاء':'عرض الإجابة'}</button>
           <button class="abtn abtn-ai"   onclick="toggleAI('${q.id}')">🤖 المساعد الذكي</button>
         </div>
@@ -1369,6 +1348,20 @@ function toggleSidebar() {
   if (homeSidebar) {
     homeSidebar.style.display = sidebarOpen ? 'flex' : 'none'
   }
+}
+
+function getHintById(qid) {
+  const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+  const ch  = sub?.chapters.find(c => c.id === STATE.activeChapter)
+  const q   = ch?.questions.find(q => q.id === qid)
+  if (q) getHint(qid, q.text)
+}
+
+function sendAIById(qid) {
+  const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+  const ch  = sub?.chapters.find(c => c.id === STATE.activeChapter)
+  const q   = ch?.questions.find(q2 => q2.id === qid)
+  if (q) sendAI(qid, q.text)
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
