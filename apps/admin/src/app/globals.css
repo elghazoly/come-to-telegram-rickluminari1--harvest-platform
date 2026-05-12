@@ -1,3 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+
+
+* {
+  font-family: 'Amiri', 'Segoe UI', system-ui, sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Amiri', serif !important;
+}
+
+h1 { font-size: 2rem !important; }
+h2 { font-size: 1.6rem !important; }
+h3 { font-size: 1.3rem !important; }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
