@@ -222,7 +222,7 @@ export default function StudentDashboard() {
   const showQuestions = !hasTimer || examStarted
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col" dir="rtl">
+    <div className="h-screen bg-slate-100 flex flex-col overflow-hidden" dir="rtl">
 
       {/* HEADER */}
       <header className="flex-shrink-0 shadow-xl" style={{ background: 'linear-gradient(135deg, #071d4a, #0a2d6e, #1a4fa8)' }}>
@@ -287,10 +287,10 @@ export default function StudentDashboard() {
           </button>
         </div>
       ) : (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1" style={{ minHeight: 0 }}>
 
           {/* SIDEBAR */}
-          <aside className="w-52 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 overflow-y-auto shadow-sm">
+          <aside className="w-52 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-sm" style={{ overflowY: "auto" }}>
             <div className="px-3 py-2.5 bg-slate-50 border-b border-slate-100">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">الفصول</p>
             </div>
@@ -324,7 +324,7 @@ export default function StudentDashboard() {
           </aside>
 
           {/* CONTENT */}
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 min-w-0" style={{ overflowY: "auto" }}>
 
             {/* Results */}
             {showResults && (
