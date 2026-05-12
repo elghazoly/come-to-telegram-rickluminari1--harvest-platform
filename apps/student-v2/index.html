@@ -144,6 +144,43 @@
   .exam-start { background: #fff7ed; border-bottom: 2px solid #fed7aa; padding: 40px 24px; text-align: center; }
   .exam-running { background: white; border-bottom: 2px solid #fed7aa; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 52px; z-index: 9; }
   .start-btn { background: #ea580c; color: white; border: none; border-radius: 12px; padding: 12px 32px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 24px; }
+
+  /* Home page */
+  #home-page { display:none; flex:1; overflow-y:auto; padding:24px; }
+  .home-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:900px; margin:0 auto; }
+  .home-card { background:white; border-radius:20px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,.08); border:1px solid #f1f5f9; cursor:pointer; transition:transform .2s, box-shadow .2s; }
+  .home-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.12); }
+  .home-card .card-icon { font-size:40px; margin-bottom:12px; }
+  .home-card h3 { font-size:18px; font-weight:800; color:#1e293b; margin-bottom:6px; }
+  .home-card p { font-size:13px; color:#64748b; line-height:1.5; }
+  .home-card .card-arrow { margin-top:16px; color:#1d4ed8; font-size:13px; font-weight:700; }
+  .home-welcome { max-width:900px; margin:0 auto 24px; }
+  .home-welcome h2 { font-size:24px; font-weight:900; color:#1e293b; }
+  .home-welcome p { color:#64748b; font-size:14px; margin-top:4px; }
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; max-width:900px; margin:0 auto 24px; }
+  .stat-mini { background:white; border-radius:14px; padding:16px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .stat-mini .s-val { font-size:24px; font-weight:900; }
+  .stat-mini .s-lbl { font-size:11px; color:#94a3b8; margin-top:2px; }
+
+  /* Study schedule */
+  #schedule-modal .modal-box { max-width:600px; }
+  .schedule-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:16px; }
+  .day-cell { background:#f8fafc; border-radius:8px; padding:8px 4px; text-align:center; }
+  .day-cell .day-name { font-size:10px; font-weight:700; color:#94a3b8; }
+  .day-cell .day-time { font-size:12px; font-weight:700; color:#1e293b; margin-top:4px; }
+  .day-cell.active { background:#eff6ff; }
+  .day-cell.active .day-time { color:#1d4ed8; }
+  .schedule-subj { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:8px; }
+  .schedule-input { width:60px; border:1px solid #e2e8f0; border-radius:6px; padding:4px 8px; font-size:12px; text-align:center; }
+
+  /* Challenges */
+  #challenges-modal .modal-box { max-width:500px; }
+  .challenge-item { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:12px; background:#f8fafc; margin-bottom:8px; }
+  .challenge-icon { font-size:24px; }
+  .challenge-bar { flex:1; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; margin-top:4px; }
+  .challenge-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,#1d4ed8,#3b82f6); }
+  .badge-earned { display:inline-flex; align-items:center; gap:6px; background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; margin:4px; }
+
 </style>
 </head>
 <body>
@@ -168,6 +205,7 @@
       <div class="header-name"><h2>منصة هارفست</h2><p>التعليمية</p></div>
       <div class="header-logo"><img id="logo-img" src="https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195" alt="هارفست"></div>
       <div class="header-actions">
+        <button class="hbtn" onclick="goHome()">🏠 الرئيسية</button>
         <button class="hbtn" onclick="toggleResults()">📊 نتائجي</button>
         <button class="hbtn" onclick="openContact()">💬 تواصل</button>
         <button class="hbtn danger" onclick="doLogout()">خروج</button>
@@ -175,7 +213,80 @@
     </div>
     <div class="subject-tabs" id="subject-tabs"></div>
   </header>
-  <div class="body">
+  
+  <!-- Home page -->
+  <div id="home-page">
+    <div class="home-welcome">
+      <h2 id="welcome-name">مرحباً! 👋</h2>
+      <p>اختر من أين تبدأ اليوم</p>
+    </div>
+    <div class="stats-row" id="home-stats"></div>
+    <div class="home-grid">
+      <div class="home-card" onclick="showSubjects()">
+        <div class="card-icon">📚</div>
+        <h3>موادي</h3>
+        <p>ادرس الأسئلة، شاهد شروح المعلمين، وتتبع تقدمك في كل مادة</p>
+        <div class="card-arrow">ابدأ الدراسة ←</div>
+      </div>
+      <div class="home-card" onclick="showPerformance()">
+        <div class="card-icon">📊</div>
+        <h3>تقارير الأداء</h3>
+        <p>اطّلع على نسب نجاحك، أكثر المواضيع قوة وأكثرها احتياجاً للمراجعة</p>
+        <div class="card-arrow">عرض التقارير ←</div>
+      </div>
+      <div class="home-card" onclick="showSchedule()">
+        <div class="card-icon">📅</div>
+        <h3>جدول مذاكرتي</h3>
+        <p>نظّم وقتك وحدد ساعات الدراسة لكل مادة طوال الأسبوع</p>
+        <div class="card-arrow">إنشاء الجدول ←</div>
+      </div>
+      <div class="home-card" onclick="showChallenges()">
+        <div class="card-icon">🏆</div>
+        <h3>التحديات والإنجازات</h3>
+        <p>اكسب الشارات، تحدَّ نفسك بأهداف يومية، وتسلّق سلّم المتفوقين</p>
+        <div class="card-arrow">عرض التحديات ←</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance modal -->
+  <div id="performance-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span style="color:white;font-weight:700;font-size:18px">📊 تقارير الأداء</span>
+        <button class="modal-close" onclick="document.getElementById('performance-modal').classList.add('hidden')">×</button>
+      </div>
+      <div class="modal-body" id="performance-body" style="max-height:70vh;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- Schedule modal -->
+  <div id="schedule-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span style="color:white;font-weight:700;font-size:18px">📅 جدول المذاكرة</span>
+        <button class="modal-close" onclick="document.getElementById('schedule-modal').classList.add('hidden')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:#64748b;font-size:13px;margin-bottom:16px">حدد عدد ساعات الدراسة لكل مادة يومياً</p>
+        <div id="schedule-body"></div>
+        <button onclick="saveSchedule()" style="width:100%;margin-top:16px;padding:12px;background:#1d4ed8;color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer">💾 حفظ الجدول</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Challenges modal -->
+  <div id="challenges-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span style="color:white;font-weight:700;font-size:18px">🏆 التحديات والإنجازات</span>
+        <button class="modal-close" onclick="document.getElementById('challenges-modal').classList.add('hidden')">×</button>
+      </div>
+      <div class="modal-body" id="challenges-body"></div>
+    </div>
+  </div>
+
+  <div class="body" id="subjects-view" style="display:none">
     <div class="sidebar">
       <div class="sidebar-title">الفصول</div>
       <div id="chapters-list"></div>
@@ -277,7 +388,8 @@ async function initApp() {
   ans?.forEach(a => { STATE.answers[a.question_id] = { optionId: a.option_id, correct: a.is_correct } })
 
   // Load subjects
-  const { data: prof } = await db.from('profiles').select('role').eq('id', user.id).single()
+  const { data: prof } = await db.from('profiles').select('id,full_name,role').eq('id', user.id).single()
+  STATE.profile = prof
   let subjectIds = []
   if (prof?.role === 'admin' || prof?.role === 'teacher') {
     const { data } = await db.from('subjects').select('id').order('order_num')
@@ -307,6 +419,142 @@ async function initApp() {
   }
 
   renderAll()
+  showHome()
+}
+
+function showHome() {
+  document.getElementById('home-page').style.display = 'block'
+  document.getElementById('subjects-view').style.display = 'none'
+  // Welcome
+  document.getElementById('welcome-name').textContent = 'مرحباً، ' + (STATE.profile?.full_name || '') + '! 👋'
+  // Stats
+  const allAnswered = Object.keys(STATE.answers).length
+  const allCorrect  = Object.values(STATE.answers).filter(a => a.correct).length
+  const totalQ      = STATE.subjects.reduce((s, sub) => s + sub.chapters.reduce((s2, ch) => s2 + ch.questions.length, 0), 0)
+  const pct         = allAnswered ? Math.round(allCorrect/allAnswered*100) : 0
+  document.getElementById('home-stats').innerHTML = [
+    { ic:'📚', val: STATE.subjects.length,  lbl:'مادة مسجّل بها', c:'#1d4ed8' },
+    { ic:'❓', val: totalQ,                  lbl:'سؤال إجمالي',     c:'#7c3aed' },
+    { ic:'✅', val: allAnswered,             lbl:'سؤال أجبته',      c:'#16a34a' },
+    { ic:'🎯', val: pct+'%',                lbl:'نسبة النجاح',     c: pct>=70?'#16a34a':pct>=50?'#d97706':'#dc2626' },
+  ].map(s => `<div class="stat-mini"><div class="s-val" style="color:${s.c}">${s.val}</div><div style="font-size:18px">${s.ic}</div><div class="s-lbl">${s.lbl}</div></div>`).join('')
+}
+
+function goHome() {
+  document.getElementById('home-page').style.display = 'block'
+  document.getElementById('subjects-view').style.display = 'none'
+}
+
+function showSubjects() {
+  document.getElementById('home-page').style.display = 'none'
+  document.getElementById('subjects-view').style.display = 'flex'
+  renderAll()
+}
+
+function showPerformance() {
+  const body = document.getElementById('performance-body')
+  const rows = STATE.subjects.map(sub => {
+    const chRows = sub.chapters.map(ch => {
+      const total   = ch.questions.length
+      const ans     = ch.questions.filter(q => STATE.answers[q.id]).length
+      const correct = ch.questions.filter(q => STATE.answers[q.id]?.correct).length
+      const pct     = ans ? Math.round(correct/ans*100) : 0
+      const col     = pct>=70?'#16a34a':pct>=50?'#d97706':'#dc2626'
+      return \`<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:10px;background:#f8fafc;margin-bottom:6px">
+        <span style="font-size:16px">\${ch.icon||'📂'}</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px">\${ch.name}</div>
+          <div style="height:4px;background:#e2e8f0;border-radius:2px;margin-top:4px;overflow:hidden"><div style="width:\${ans?pct:0}%;height:100%;background:\${col};border-radius:2px"></div></div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:\${col}">\${ans}/\${total} • \${pct}%</span>
+      </div>\`
+    }).join('')
+    return \`<div style="margin-bottom:20px">
+      <div style="font-weight:800;font-size:15px;color:#1e293b;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #f1f5f9">\${sub.icon||'📚'} \${sub.name}</div>
+      \${chRows}
+    </div>\`
+  }).join('')
+  body.innerHTML = rows || '<p style="text-align:center;color:#94a3b8;padding:20px">لا توجد بيانات بعد</p>'
+  document.getElementById('performance-modal').classList.remove('hidden')
+}
+
+function showSchedule() {
+  const schedule = JSON.parse(localStorage.getItem('harvest_schedule') || '{}')
+  const days = ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة']
+  document.getElementById('schedule-body').innerHTML = STATE.subjects.map(sub => {
+    const hrs = days.map((d,i) => {
+      const val = schedule[sub.id]?.[i] || 0
+      return \`<div style="text-align:center">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">\${d.slice(0,3)}</div>
+        <input type="number" min="0" max="8" value="\${val}" 
+               id="sch-\${sub.id}-\${i}"
+               style="width:36px;border:1px solid #e2e8f0;border-radius:6px;padding:4px;font-size:12px;text-align:center">
+      </div>\`
+    }).join('')
+    return \`<div class="schedule-subj">
+      <span style="font-weight:700;font-size:14px">\${sub.icon||'📚'} \${sub.name}</span>
+      <div style="display:flex;gap:6px">\${hrs}</div>
+    </div>\`
+  }).join('')
+  document.getElementById('schedule-modal').classList.remove('hidden')
+}
+
+function saveSchedule() {
+  const schedule = {}
+  STATE.subjects.forEach(sub => {
+    schedule[sub.id] = [0,1,2,3,4,5,6].map(i => {
+      const el = document.getElementById(\`sch-\${sub.id}-\${i}\`)
+      return el ? parseInt(el.value)||0 : 0
+    })
+  })
+  localStorage.setItem('harvest_schedule', JSON.stringify(schedule))
+  document.getElementById('schedule-modal').classList.add('hidden')
+  alert('✅ تم حفظ الجدول!')
+}
+
+function showChallenges() {
+  const allAnswered = Object.keys(STATE.answers).length
+  const allCorrect  = Object.values(STATE.answers).filter(a => a.correct).length
+  const pct         = allAnswered ? Math.round(allCorrect/allAnswered*100) : 0
+  const streak      = parseInt(localStorage.getItem('harvest_streak')||'0')
+
+  const challenges = [
+    { ic:'🎯', name:'أجب على 10 أسئلة',    target:10,  current:allAnswered, unit:'سؤال' },
+    { ic:'⭐', name:'احصل على 80% صحيح',   target:80,  current:pct,         unit:'%' },
+    { ic:'🔥', name:'3 أيام متواصلة',       target:3,   current:streak,      unit:'يوم' },
+    { ic:'📚', name:'أكمل فصلاً كاملاً',   target:100, current:0,           unit:'%' },
+    { ic:'🏆', name:'أجب على 50 سؤال صح',  target:50,  current:allCorrect,  unit:'سؤال' },
+  ]
+
+  const badges = []
+  if (allAnswered >= 10) badges.push('🎯 مجيب')
+  if (pct >= 80)         badges.push('⭐ متفوق')
+  if (allCorrect >= 50)  badges.push('🏆 بطل')
+  if (allAnswered >= 100) badges.push('📚 مثابر')
+
+  const body = document.getElementById('challenges-body')
+  body.innerHTML = \`
+    <div style="margin-bottom:20px">
+      <div style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:12px">🎖️ الشارات المكتسبة</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        \${badges.length ? badges.map(b => \`<span class="badge-earned">\${b}</span>\`).join('') : '<p style="color:#94a3b8;font-size:13px">لم تكسب شارات بعد — استمر في الإجابة!</p>'}
+      </div>
+    </div>
+    <div style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:12px">🎯 التحديات الجارية</div>
+    \${challenges.map(c => {
+      const prog = Math.min(Math.round(c.current/c.target*100), 100)
+      const done = prog >= 100
+      return \`<div class="challenge-item" style="\${done?'background:#f0fdf4;':''}">
+        <span class="challenge-icon">\${c.ic}</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px;color:\${done?'#166534':'#1e293b'}">\${c.name} \${done?'✅':''}</div>
+          <div class="challenge-bar"><div class="challenge-fill" style="width:\${prog}%"></div></div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px">\${Math.min(c.current,c.target)} / \${c.target} \${c.unit}</div>
+        </div>
+      </div>\`
+    }).join('')}
+  \`
+  document.getElementById('challenges-modal').classList.remove('hidden')
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
