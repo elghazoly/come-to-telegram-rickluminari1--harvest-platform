@@ -423,10 +423,10 @@ export default function StudentDashboard() {
 
                   return (
                     <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                      <div className={hasVideo ? 'flex' : ''}>
+                      <div style={{ display: 'flex', flexDirection: 'row' }}>
 
                         {/* QUESTION COLUMN */}
-                        <div className={hasVideo ? 'flex-1 min-w-0' : ''}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div className="p-5">
                             <div className="flex items-center gap-2 mb-3 flex-wrap">
                               <span className="bg-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">س {q.num}</span>
@@ -550,7 +550,7 @@ export default function StudentDashboard() {
 
                         {/* VIDEO COLUMN */}
                         {hasVideo && (
-                          <div className="w-72 flex-shrink-0 border-l border-emerald-100 bg-emerald-50 flex flex-col">
+                          <div style={{ width: '300px', flexShrink: 0, borderLeft: '1px solid #d1fae5', background: '#ecfdf5', display: 'flex', flexDirection: 'column' }}>
                             <div className="px-3 py-2.5 flex items-center gap-2" style={{ background: '#059669' }}>
                               <span className="text-white text-sm">🎬</span>
                               <span className="text-xs font-bold text-white">شرح المعلم</span>
