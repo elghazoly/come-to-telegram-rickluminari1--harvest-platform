@@ -612,6 +612,12 @@ function showSubjects() {
   document.getElementById('home-page').style.display = 'none'
   document.getElementById('subjects-view').style.display = 'flex'
   document.getElementById('subject-tabs').style.display = 'flex'
+  // Sync sidebar state
+  const appSidebar = document.getElementById('app-sidebar')
+  if (appSidebar) appSidebar.classList.toggle('collapsed', !sidebarOpen)
+  // Update name in app sidebar
+  const appSidebarName = document.getElementById('app-sidebar-name')
+  if (appSidebarName) appSidebarName.textContent = STATE.profile?.full_name || ''
   renderAll()
 }
 
