@@ -72,10 +72,35 @@ export default function MediaPage() {
   async function loadFiles() {
     setLoading(true)
     try {
+      // Get teacher's assigned subject IDs
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: prof } = await supabase.from('profiles').select('role').eq('id', user!.id).single()
+      
+      let allowedChapterIds: Set<string> = new Set()
+      if (prof?.role === 'admin') {
+        // Admin sees all - no filter
+      } else {
+        // Teacher sees only their assigned subjects' chapters
+        const { data: ts } = await supabase.from('teacher_subjects').select('subject_id').eq('teacher_id', user!.id)
+        const subjectIds = ts?.map((s: any) => s.subject_id) || []
+        if (subjectIds.length) {
+          const { data: chs } = await supabase.from('chapters').select('id').in('subject_id', subjectIds)
+          chs?.forEach((c: any) => allowedChapterIds.add(c.id))
+        }
+      }
+
       const prefix = tab === 'videos' ? 'videos/' : 'images/'
       const r = await fetch(`/api/media/list?prefix=${prefix}`)
       const d = await r.json()
-      const rawFiles: MediaFile[] = d.files || []
+      let rawFiles: MediaFile[] = d.files || []
+
+      // Filter by teacher's chapters (if not admin)
+      if (allowedChapterIds.size > 0) {
+        rawFiles = rawFiles.filter(f => {
+          const chapterId = f.key.split('/')[1] || ''
+          return allowedChapterIds.has(chapterId)
+        })
+      }
 
       // Enrich: resolve chapter/question IDs to names
       // Path format: videos/{chapter_id}/{question_id}.ext
