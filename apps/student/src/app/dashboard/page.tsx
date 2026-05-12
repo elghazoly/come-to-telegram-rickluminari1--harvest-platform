@@ -101,6 +101,7 @@ export default function StudentDashboard() {
         for (const ch of chs || []) {
           const { data: qs } = await supabase.from('questions')
             .select('*, options(*), explanations(*)').eq('chapter_id', ch.id).order('order_num')
+          console.log('Chapter:', ch.name, 'Questions:', qs?.length, 'Sample explanations:', qs?.[0]?.explanations)
           chapFull.push({ ...ch, questions: (qs || []) as Question[] })
         }
         built.push({ ...sub, chapters: chapFull })
