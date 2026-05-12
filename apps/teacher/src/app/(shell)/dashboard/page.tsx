@@ -13,6 +13,7 @@ export default function TeacherDashboard() {
   const router = useRouter()
   const { show, ToastComponent } = useToast()
 
+  const [view,           setView]           = useState<'home'|'subjects'>('home')
   const [subjects,       setSubjects]       = useState<SubjectFull[]>([])
   const [profile,        setProfile]        = useState<{ full_name: string; role: string; id: string } | null>(null)
   const [loading,        setLoading]        = useState(true)
@@ -183,11 +184,93 @@ export default function TeacherDashboard() {
     await supabase.auth.signOut(); router.push('/login')
   }
 
+  const LOGO = 'https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195'
+
+  if (view === 'home') return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column', background:'#f0f4ff', direction:'rtl' }}>
+      {ToastComponent}
+      {loading ? (
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8' }}>⏳ جاري التحميل...</div>
+      ) : (
+        <div style={{ display:'flex', flex:1, overflow:'hidden', minHeight:0 }}>
+
+          {/* CENTER — 3 blocks */}
+          <div style={{ flex:1, padding:24, overflowY:'auto' as const }}>
+            <div style={{ marginBottom:20 }}>
+              <h2 style={{ fontSize:22, fontWeight:800, color:'#1e293b' }}>مرحباً، {profile?.full_name} 👋</h2>
+              <p style={{ color:'#64748b', fontSize:13, marginTop:4 }}>لوحة تحكم المعلم</p>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
+              {/* المواد */}
+              <div onClick={() => setView('subjects')}
+                   style={{ background:'white', borderRadius:18, padding:24, cursor:'pointer', border:'1.5px solid #bfdbfe', boxShadow:'0 2px 12px rgba(29,78,216,.08)', transition:'all .2s' }}
+                   onMouseEnter={e => (e.currentTarget.style.transform='translateY(-3px)')}
+                   onMouseLeave={e => (e.currentTarget.style.transform='translateY(0)')}>
+                <div style={{ width:48, height:48, borderRadius:14, background:'#eff6ff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, marginBottom:14 }}>📚</div>
+                <div style={{ fontSize:17, fontWeight:800, color:'#1e293b', marginBottom:6 }}>موادي</div>
+                <div style={{ fontSize:12, color:'#64748b', lineHeight:1.5 }}>إدارة المواد وفصول الشرح والاختبارات</div>
+                <div style={{ marginTop:16, display:'flex', gap:8, flexWrap:'wrap' as const }}>
+                  {subjects.map(s => (
+                    <span key={s.id} style={{ background:'#eff6ff', color:'#1d4ed8', fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20 }}>{s.icon} {s.name}</span>
+                  ))}
+                </div>
+                <div style={{ marginTop:14, color:'#1d4ed8', fontSize:13, fontWeight:600 }}>إدارة المواد ←</div>
+              </div>
+
+              {/* طلابي */}
+              <div style={{ background:'white', borderRadius:18, padding:24, cursor:'pointer', border:'1.5px solid #fef08a', boxShadow:'0 2px 12px rgba(202,138,4,.08)', transition:'all .2s' }}
+                   onMouseEnter={e => (e.currentTarget.style.transform='translateY(-3px)')}
+                   onMouseLeave={e => (e.currentTarget.style.transform='translateY(0)')}>
+                <div style={{ width:48, height:48, borderRadius:14, background:'#fefce8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, marginBottom:14 }}>👥</div>
+                <div style={{ fontSize:17, fontWeight:800, color:'#1e293b', marginBottom:6 }}>طلابي</div>
+                <div style={{ fontSize:12, color:'#64748b', lineHeight:1.5 }}>متابعة تقدم الطلاب وأدائهم في المواد</div>
+                <div style={{ marginTop:14, color:'#ca8a04', fontSize:13, fontWeight:600 }}>عرض الطلاب ←</div>
+              </div>
+
+              {/* رصيدي */}
+              <div style={{ background:'white', borderRadius:18, padding:24, cursor:'pointer', border:'1.5px solid #fecaca', boxShadow:'0 2px 12px rgba(220,38,38,.08)', transition:'all .2s' }}
+                   onMouseEnter={e => (e.currentTarget.style.transform='translateY(-3px)')}
+                   onMouseLeave={e => (e.currentTarget.style.transform='translateY(0)')}>
+                <div style={{ width:48, height:48, borderRadius:14, background:'#fef2f2', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, marginBottom:14 }}>💰</div>
+                <div style={{ fontSize:17, fontWeight:800, color:'#1e293b', marginBottom:6 }}>رصيدي</div>
+                <div style={{ fontSize:12, color:'#64748b', lineHeight:1.5 }}>عرض الأرباح والمدفوعات المستحقة</div>
+                <div style={{ marginTop:14, color:'#dc2626', fontSize:13, fontWeight:600 }}>عرض الرصيد ←</div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT — 3 blocks stacked */}
+          <div style={{ width:260, flexShrink:0, padding:'24px 16px', overflowY:'auto' as const, background:'#f8faff', borderRight:'1px solid #e8f0fe' }}>
+            {[
+              { icon:'📅', title:'أنشئ جدول مذاكرة لطلابك', desc:'خطة دراسية أسبوعية مخصصة', color:'#1d4ed8', bg:'#eff6ff', border:'#bfdbfe' },
+              { icon:'🎥', title:'جدول الحصص المباشرة', desc:'المواعيد المتاحة للحصص الخاصة', color:'#15803d', bg:'#f0fdf4', border:'#bbf7d0' },
+              { icon:'🏅', title:'شهادات التقدير', desc:'منح الطلاب شهادات التميز', color:'#7c3aed', bg:'#f5f3ff', border:'#ddd6fe' },
+            ].map((item, i) => (
+              <div key={i} style={{ background:'white', borderRadius:16, padding:18, marginBottom:14, cursor:'pointer', border:'1.5px solid ' + item.border, transition:'all .2s' }}
+                   onMouseEnter={e => (e.currentTarget.style.transform='translateY(-2px)')}
+                   onMouseLeave={e => (e.currentTarget.style.transform='translateY(0)')}>
+                <div style={{ fontSize:28, marginBottom:10 }}>{item.icon}</div>
+                <div style={{ fontSize:14, fontWeight:700, color:'#1e293b', lineHeight:1.4, marginBottom:6 }}>{item.title}</div>
+                <div style={{ fontSize:11, color:'#94a3b8', lineHeight:1.5 }}>{item.desc}</div>
+                <div style={{ marginTop:10, fontSize:12, fontWeight:600, color:item.color }}>ابدأ الآن ←</div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col" dir="rtl">
       {ToastComponent}
-
-      {/* ── Header ── */}
+      <div style={{ padding:'8px 16px', background:'white', borderBottom:'1px solid #e2e8f0' }}>
+        <button onClick={() => setView('home')}
+                style={{ background:'#f1f5f9', border:'none', color:'#475569', padding:'6px 14px', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+          ← الرئيسية
+        </button>
+      </div>
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center text-slate-400">⏳ جاري التحميل...</div>
