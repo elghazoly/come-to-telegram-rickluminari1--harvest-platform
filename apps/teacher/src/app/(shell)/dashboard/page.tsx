@@ -200,7 +200,7 @@ export default function TeacherDashboard() {
               <h2 style={{ fontSize:22, fontWeight:800, color:'#1e293b' }}>مرحباً، {profile?.full_name} 👋</h2>
               <p style={{ color:'#64748b', fontSize:13, marginTop:4 }}>لوحة تحكم المعلم</p>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
               {/* المواد */}
               <div onClick={() => setView('subjects')}
                    style={{ background:'white', borderRadius:18, padding:24, cursor:'pointer', border:'1.5px solid #bfdbfe', boxShadow:'0 2px 12px rgba(29,78,216,.08)', transition:'all .2s' }}
@@ -235,6 +235,17 @@ export default function TeacherDashboard() {
                 <div style={{ fontSize:17, fontWeight:800, color:'#1e293b', marginBottom:6 }}>رصيدي</div>
                 <div style={{ fontSize:12, color:'#64748b', lineHeight:1.5 }}>عرض الأرباح والمدفوعات المستحقة</div>
                 <div style={{ marginTop:14, color:'#dc2626', fontSize:13, fontWeight:600 }}>عرض الرصيد ←</div>
+              </div>
+
+              {/* الميديا */}
+              <div onClick={() => window.location.href='/media'}
+                   style={{ background:'white', borderRadius:18, padding:24, cursor:'pointer', border:'1.5px solid #d1fae5', boxShadow:'0 2px 12px rgba(5,150,105,.08)', transition:'all .2s' }}
+                   onMouseEnter={e => (e.currentTarget.style.transform='translateY(-3px)')}
+                   onMouseLeave={e => (e.currentTarget.style.transform='translateY(0)')}>
+                <div style={{ width:48, height:48, borderRadius:14, background:'#ecfdf5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, marginBottom:14 }}>🎬</div>
+                <div style={{ fontSize:17, fontWeight:800, color:'#1e293b', marginBottom:6 }}>الميديا</div>
+                <div style={{ fontSize:12, color:'#64748b', lineHeight:1.5 }}>رفع وإدارة فيديوهات الشرح والملفات</div>
+                <div style={{ marginTop:14, color:'#059669', fontSize:13, fontWeight:600 }}>إدارة الميديا ←</div>
               </div>
             </div>
           </div>

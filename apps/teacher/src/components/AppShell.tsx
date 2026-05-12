@@ -50,7 +50,7 @@ export default function AppShell({ children, title = 'منصة المعلم' }: 
             <div style={{ fontSize: 11, color: '#94a3b8' }}>{title}</div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <img src={LOGO} alt="هارفست" style={{ height: 44, objectFit: 'contain' }} />
+            <img src={LOGO} alt="هارفست" style={{ height: 60, objectFit: 'contain' }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={signOut}
