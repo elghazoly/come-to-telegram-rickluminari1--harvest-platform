@@ -2,7 +2,7 @@ const http  = require('http')
 const fs    = require('fs')
 const path  = require('path')
 
-const PORT = 3003
+const PORT = process.env.PORT || 3004
 
 // Simple reverse proxy for /api calls → student Next.js app
 const NEXT_APP = 'http://localhost:3002'
