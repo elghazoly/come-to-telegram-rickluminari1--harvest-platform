@@ -11,9 +11,8 @@ type Subject     = { id: string; name: string; icon: string | null; chapters: Ch
 type ChatMsg     = { role: 'user' | 'assistant'; content: string }
 type Settings    = { CONTACT_EMAIL?: string; CONTACT_WHATSAPP?: string; CONTACT_WEBSITE?: string; PLATFORM_NAME?: string; LOGO_URL?: string }
 
-const DEFAULT_LOGO = 'https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195'
+const LOGO = 'https://www.harvste.com/cdn/shop/files/harv_logo.jpg?v=1775984331&width=195'
 
-// Single supabase instance — outside component to prevent re-creation on re-render
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -22,359 +21,285 @@ const supabase = createClient(
 function ExamTimer({ seconds, onEnd }: { seconds: number; onEnd: () => void }) {
   const [left, setLeft] = useState(seconds)
   useEffect(() => {
-    const t = setInterval(() => {
-      setLeft(l => { if (l <= 1) { clearInterval(t); onEnd(); return 0 } return l - 1 })
-    }, 1000)
+    const t = setInterval(() => setLeft(l => { if (l <= 1) { clearInterval(t); onEnd(); return 0 } return l - 1 }), 1000)
     return () => clearInterval(t)
   }, [])
-  const pct   = (left / seconds) * 100
-  const color = pct > 50 ? '#16a34a' : pct > 20 ? '#d97706' : '#dc2626'
-  const m     = Math.floor(left / 60).toString().padStart(2, '0')
-  const s     = (left % 60).toString().padStart(2, '0')
+  const pct = left / seconds * 100
+  const col = pct > 50 ? '#16a34a' : pct > 20 ? '#d97706' : '#dc2626'
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-32 bg-slate-200 rounded-full h-2 overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ width: 120, height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: col, transition: 'width 1s' }} />
       </div>
-      <span className="text-base font-black tabular-nums" style={{ color }}>{m}:{s}</span>
-      {left <= 60 && <span className="text-xs text-red-500 font-bold animate-pulse">⚠️ دقيقة!</span>}
+      <span style={{ fontWeight: 900, color: col, fontVariantNumeric: 'tabular-nums' }}>
+        {String(Math.floor(left / 60)).padStart(2, '0')}:{String(left % 60).padStart(2, '0')}
+      </span>
     </div>
   )
 }
 
 export default function StudentDashboard() {
   const router = useRouter()
-  const [subjects,       setSubjects]       = useState<Subject[]>([])
-  const [profile,        setProfile]        = useState<{ full_name: string; id: string } | null>(null)
-  const [loading,        setLoading]        = useState(true)
-  const [siteSettings,   setSiteSettings]   = useState<Settings>({})
-  const [activeSubject,  setActiveSubject]  = useState('')
-  const [activeChapter,  setActiveChapter]  = useState('')
-  const [yearFilter,     setYearFilter]     = useState('all')
-  const [answers,        setAnswers]        = useState<Record<string, { optionId: string; correct: boolean }>>({})
-  const [revealedVideos, setRevealedVideos] = useState<Record<string, boolean>>({})
-  const [revealedAns,    setRevealedAns]    = useState<Record<string, boolean>>({})
-  const [hints,          setHints]          = useState<Record<string, string>>({})
-  const [hintLoading,    setHintLoading]    = useState<string | null>(null)
-  const [aiOpen,         setAiOpen]         = useState<string | null>(null)
-  const [aiChats,        setAiChats]        = useState<Record<string, ChatMsg[]>>({})
-  const [aiInput,        setAiInput]        = useState('')
-  const [aiLoading,      setAiLoading]      = useState(false)
-  const [contactOpen,    setContactOpen]    = useState(false)
-  const [examStarted,    setExamStarted]    = useState(false)
-  const [examTimeLeft,   setExamTimeLeft]   = useState<number | null>(null)
-  const [showResults,    setShowResults]    = useState(false)
-  const aiEndRef = useRef<HTMLDivElement>(null)
+  const [subjects,      setSubjects]      = useState<Subject[]>([])
+  const [profile,       setProfile]       = useState<{ full_name: string } | null>(null)
+  const [loading,       setLoading]       = useState(true)
+  const [settings,      setSettings]      = useState<Settings>({})
+  const [activeSubject, setActiveSubject] = useState('')
+  const [activeChapter, setActiveChapter] = useState('')
+  const [yearFilter,    setYearFilter]    = useState('all')
+  const [answers,       setAnswers]       = useState<Record<string, { optionId: string; correct: boolean }>>({})
+  const [openVideo,     setOpenVideo]     = useState<Record<string, boolean>>({})
+  const [openAns,       setOpenAns]       = useState<Record<string, boolean>>({})
+  const [hints,         setHints]         = useState<Record<string, string>>({})
+  const [hintLoad,      setHintLoad]      = useState('')
+  const [aiOpen,        setAiOpen]        = useState('')
+  const [aiChats,       setAiChats]       = useState<Record<string, ChatMsg[]>>({})
+  const [aiInput,       setAiInput]       = useState('')
+  const [aiLoad,        setAiLoad]        = useState(false)
+  const [contact,       setContact]       = useState(false)
+  const [examStarted,   setExamStarted]   = useState(false)
+  const [examTime,      setExamTime]      = useState<number | null>(null)
+  const [showResults,   setShowResults]   = useState(false)
+  const aiRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
+    fetch('/api/settings').then(r => r.json()).then(setSettings).catch(() => {})
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
-
-      // Load settings
-      fetch('/api/settings').then(r => r.json()).then(d => setSiteSettings(d)).catch(() => {})
-
-      const { data: prof } = await supabase.from('profiles').select('id, full_name, role').eq('id', user.id).single()
+      const { data: prof } = await supabase.from('profiles').select('id,full_name,role').eq('id', user.id).single()
       setProfile(prof)
-
-      let subjectIds: string[] = []
+      let ids: string[] = []
       if (prof?.role === 'admin' || prof?.role === 'teacher') {
         const { data } = await supabase.from('subjects').select('id').order('order_num')
-        subjectIds = data?.map((s: any) => s.id) || []
+        ids = data?.map((s: any) => s.id) || []
       } else {
         const { data } = await supabase.from('enrollments').select('subject_id').eq('student_id', user.id)
-        subjectIds = data?.map((e: any) => e.subject_id) || []
+        ids = data?.map((e: any) => e.subject_id) || []
       }
-      if (!subjectIds.length) { setLoading(false); return }
-
-      const { data: existingAnswers } = await supabase
-        .from('student_answers').select('question_id, option_id, is_correct').eq('student_id', user.id)
-      const answersMap: Record<string, { optionId: string; correct: boolean }> = {}
-      existingAnswers?.forEach((a: any) => { answersMap[a.question_id] = { optionId: a.option_id, correct: a.is_correct } })
-      setAnswers(answersMap)
-
+      if (!ids.length) { setLoading(false); return }
+      const { data: ans } = await supabase.from('student_answers').select('question_id,option_id,is_correct').eq('student_id', user.id)
+      const amap: Record<string, { optionId: string; correct: boolean }> = {}
+      ans?.forEach((a: any) => { amap[a.question_id] = { optionId: a.option_id, correct: a.is_correct } })
+      setAnswers(amap)
       const built: Subject[] = []
-      for (const sid of subjectIds) {
+      for (const sid of ids) {
         const { data: sub } = await supabase.from('subjects').select('*').eq('id', sid).single()
         if (!sub) continue
         const { data: chs } = await supabase.from('chapters').select('*').eq('subject_id', sid).order('order_num')
         const chapFull: Chapter[] = []
         for (const ch of chs || []) {
-          const { data: qs } = await supabase.from('questions')
-            .select('*, options(*), explanations(*)').eq('chapter_id', ch.id).order('order_num')
-          console.log('Chapter:', ch.name, 'Questions:', qs?.length, 'Sample explanations:', qs?.[0]?.explanations)
-          chapFull.push({ ...ch, questions: (qs || []) as Question[] })
+          const { data: qs } = await supabase.from('questions').select('*,options(*),explanations(*)').eq('chapter_id', ch.id).order('order_num')
+          chapFull.push({ ...ch, questions: qs as Question[] || [] })
         }
         built.push({ ...sub, chapters: chapFull })
       }
       setSubjects(built)
-      if (built.length > 0) {
-        setActiveSubject(built[0].id)
-        if (built[0].chapters.length > 0) setActiveChapter(built[0].chapters[0].id)
-      }
+      if (built[0]) { setActiveSubject(built[0].id); if (built[0].chapters[0]) setActiveChapter(built[0].chapters[0].id) }
       setLoading(false)
-    }
-    load()
+    })
   }, [])
 
-  useEffect(() => { aiEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [aiChats, aiOpen])
+  useEffect(() => { aiRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [aiChats, aiOpen])
 
-  async function handleAnswer(q: Question, option: Option) {
+  async function answer(q: Question, opt: Option) {
     if (answers[q.id]) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const newAnswers = { ...answers, [q.id]: { optionId: option.id, correct: option.is_correct } }
-    setAnswers(newAnswers)
-    await supabase.from('student_answers').upsert({
-      student_id: user.id, question_id: q.id, option_id: option.id,
-      is_correct: option.is_correct, answered_at: new Date().toISOString(),
-    })
-    const chapter  = currentSubject?.chapters.find(c => c.id === activeChapter)
-    const totalQ   = chapter?.questions.length || 0
-    const correctQ = Object.entries(newAnswers)
-      .filter(([qid]) => chapter?.questions.some(q2 => q2.id === qid))
-      .filter(([, v]) => v.correct).length
-    await supabase.from('student_progress').upsert({
-      student_id: user.id, chapter_id: activeChapter,
-      total_q: totalQ, correct_q: correctQ, last_activity: new Date().toISOString(),
-    })
-    // Auto explain in AI
+    const next = { ...answers, [q.id]: { optionId: opt.id, correct: opt.is_correct } }
+    setAnswers(next)
+    await supabase.from('student_answers').upsert({ student_id: user.id, question_id: q.id, option_id: opt.id, is_correct: opt.is_correct, answered_at: new Date().toISOString() })
+    const ch = sub?.chapters.find(c => c.id === activeChapter)
+    await supabase.from('student_progress').upsert({ student_id: user.id, chapter_id: activeChapter, total_q: ch?.questions.length || 0, correct_q: Object.entries(next).filter(([qid, v]) => ch?.questions.some(q2 => q2.id === qid) && v.correct).length, last_activity: new Date().toISOString() })
     if (aiOpen === q.id) {
-      const correctOpt = q.options.find(o => o.is_correct)
-      const autoMsg = option.is_correct
-        ? `أجبت صح! الإجابة: ${correctOpt?.letter}: ${correctOpt?.text}. اشرح لي لماذا هي الصحيحة.`
-        : `اخترت ${option.letter} وهي خطأ. الصحيحة: ${correctOpt?.letter}: ${correctOpt?.text}. اشرح لي الفرق.`
-      const history = aiChats[q.id] || []
-      const newH: ChatMsg[] = [...history, { role: 'user', content: autoMsg }]
-      setAiChats(prev => ({ ...prev, [q.id]: newH }))
-      sendAiDirect(q, autoMsg, history)
+      const correct = q.options.find(o => o.is_correct)
+      const msg = opt.is_correct ? `أجبت صح! الإجابة ${correct?.letter}: ${correct?.text}. لماذا هي الصحيحة؟` : `اخترت خطأ. الصحيحة ${correct?.letter}: ${correct?.text}. اشرح الفرق.`
+      const hist = aiChats[q.id] || []
+      setAiChats(p => ({ ...p, [q.id]: [...hist, { role: 'user', content: msg }] }))
+      callAI(q, msg, hist)
     }
   }
 
   async function getHint(q: Question) {
-    if (hints[q.id] || hintLoading) return
-    setHintLoading(q.id)
-    const r = await fetch('/api/ai-assistant', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: q.text, options: q.options, ans_text: q.ans_text,
-        user_message: 'أعطني تلميحاً واحداً مختصراً (جملة واحدة) يساعدني على التفكير بدون ذكر الإجابة.',
-        history: [] })
-    })
+    if (hints[q.id] || hintLoad) return
+    setHintLoad(q.id)
+    const r = await fetch('/api/ai-assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q.text, options: q.options, ans_text: q.ans_text, user_message: 'تلميح واحد مختصر بدون ذكر الإجابة.', history: [] }) })
     const d = await r.json()
     setHints(h => ({ ...h, [q.id]: d.reply }))
-    setHintLoading(null)
+    setHintLoad('')
   }
 
-  async function sendAiDirect(q: Question, msg: string, history: ChatMsg[]) {
-    setAiLoading(true)
-    const r = await fetch('/api/ai-assistant', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: q.text, options: q.options, ans_text: q.ans_text,
-        user_message: msg, history: history.map(m => ({ role: m.role, content: m.content })) })
-    })
+  async function callAI(q: Question, msg: string, hist: ChatMsg[]) {
+    setAiLoad(true)
+    const r = await fetch('/api/ai-assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q.text, options: q.options, ans_text: q.ans_text, user_message: msg, history: hist }) })
     const d = await r.json()
-    setAiChats(prev => ({ ...prev, [q.id]: [...(prev[q.id] || []), { role: 'assistant', content: d.reply }] }))
-    setAiLoading(false)
+    setAiChats(p => ({ ...p, [q.id]: [...(p[q.id] || []), { role: 'assistant', content: d.reply }] }))
+    setAiLoad(false)
   }
 
-  async function sendAiMessage(q: Question) {
-    if (!aiInput.trim() || aiLoading) return
-    const msg = aiInput.trim(); setAiInput('')
-    const history = aiChats[q.id] || []
-    setAiChats(prev => ({ ...prev, [q.id]: [...history, { role: 'user', content: msg }] }))
-    sendAiDirect(q, msg, history)
+  async function sendAI(q: Question) {
+    if (!aiInput.trim() || aiLoad) return
+    const msg = aiInput; setAiInput('')
+    const hist = aiChats[q.id] || []
+    setAiChats(p => ({ ...p, [q.id]: [...hist, { role: 'user', content: msg }] }))
+    callAI(q, msg, hist)
   }
 
-  function switchSubject(sid: string) {
-    setActiveSubject(sid); setYearFilter('all'); setShowResults(false); setExamStarted(false)
-    const sub = subjects.find(s => s.id === sid)
-    if (sub?.chapters.length) setActiveChapter(sub.chapters[0].id)
+  const sub  = subjects.find(s => s.id === activeSubject)
+  const ch   = sub?.chapters.find(c => c.id === activeChapter)
+  const allQ = ch?.questions || []
+  const qs   = allQ.filter(q => yearFilter === 'all' || String(q.year) === yearFilter)
+  const years = [...new Set(allQ.filter(q => q.year).map(q => String(q.year)))].sort((a, b) => +b - +a)
+  const answered = qs.filter(q => answers[q.id]).length
+  const correct  = qs.filter(q => answers[q.id]?.correct).length
+  const pct      = qs.length ? Math.round(answered / qs.length * 100) : 0
+  const isExam   = ch?.chapter_type === 'exam'
+  const hasTimer = isExam && ch?.timer_enabled
+  const logo     = settings.LOGO_URL || LOGO
+
+  const level = (() => {
+    if (answered < 3) return { t: 'جاري التقييم', c: '#64748b' }
+    const p = correct / answered
+    if (p >= 0.9) return { t: 'ممتاز 🌟', c: '#16a34a' }
+    if (p >= 0.7) return { t: 'جيد جداً ⭐', c: '#1a4fa8' }
+    if (p >= 0.5) return { t: 'جيد 📈', c: '#d97706' }
+    return { t: 'يحتاج مراجعة 📚', c: '#dc2626' }
+  })()
+
+  // ── Styles ──────────────────────────────────────────────────────────────────
+  const S = {
+    page:       { height: '100vh', display: 'flex', flexDirection: 'column' as const, background: '#f1f5f9', direction: 'rtl' as const, fontFamily: 'system-ui, sans-serif' },
+    header:     { flexShrink: 0, background: 'linear-gradient(135deg,#071d4a,#0a2d6e,#1a4fa8)', boxShadow: '0 4px 20px rgba(0,0,0,.3)' },
+    headerTop:  { display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,.1)' },
+    tabs:       { display: 'flex', gap: 2, padding: '8px 20px 0', overflowX: 'auto' as const },
+    tab:        (active: boolean) => ({ padding: '8px 20px', fontWeight: 700, fontSize: 14, borderRadius: '12px 12px 0 0', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const, background: active ? 'white' : 'transparent', color: active ? '#1e3a8a' : 'rgba(255,255,255,.7)' }),
+    body:       { display: 'flex', flex: 1, overflow: 'hidden' as const, minHeight: 0 },
+    sidebar:    { width: 208, background: 'white', borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' as const, overflowY: 'auto' as const, flexShrink: 0 },
+    sideItem:   (active: boolean) => ({ display: 'block', width: '100%', textAlign: 'right' as const, padding: '12px', borderBottom: '1px solid #f8fafc', background: active ? '#1d4ed8' : 'white', color: active ? 'white' : '#374151', cursor: 'pointer', border: 'none' }),
+    main:       { flex: 1, overflowY: 'auto' as const, minWidth: 0 },
+    stickyBar:  { position: 'sticky' as const, top: 0, background: 'white', borderBottom: '1px solid #e2e8f0', padding: '10px 16px', zIndex: 10 },
+    card:       { background: 'white', borderRadius: 16, boxShadow: '0 1px 4px rgba(0,0,0,.08)', border: '1px solid #f1f5f9', marginBottom: 20, overflow: 'hidden' },
+    cardInner:  { display: 'flex', flexDirection: 'row' as const },
+    qCol:       { flex: 1, minWidth: 0 },
+    vCol:       { width: 300, flexShrink: 0, borderLeft: '1px solid #a7f3d0', background: '#ecfdf5', display: 'flex', flexDirection: 'column' as const },
+    vHeader:    { background: '#059669', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 },
+    vPlay:      { flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 16, cursor: 'pointer', border: 'none', background: 'transparent' },
+    playBtn:    { width: 56, height: 56, borderRadius: '50%', background: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(5,150,105,.3)' },
+    optBase:    { display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', borderRadius: 12, border: '2px solid', cursor: 'pointer', textAlign: 'right' as const, marginBottom: 8 },
+    btnSmall:   (col: string, bg: string, border: string) => ({ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, border: `1px solid ${border}`, background: bg, color: col, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginLeft: 8 }),
+    panel:      (bg: string, border: string) => ({ borderTop: `1px solid ${border}`, background: bg, padding: '12px 20px' }),
   }
-
-  function switchChapter(cid: string) {
-    setActiveChapter(cid); setYearFilter('all'); setExamStarted(false); setExamTimeLeft(null)
-  }
-
-  const currentSubject   = subjects.find(s => s.id === activeSubject)
-  const currentChapter   = currentSubject?.chapters.find(c => c.id === activeChapter)
-  const allQ             = currentChapter?.questions || []
-  const currentQuestions = allQ.filter(q => yearFilter === 'all' || String(q.year) === yearFilter)
-  const availableYears   = [...new Set(allQ.filter(q => q.year).map(q => String(q.year)))].sort((a,b) => parseInt(b) - parseInt(a))
-  const chapterAnswered  = currentQuestions.filter(q => answers[q.id]).length
-  const chapterCorrect   = currentQuestions.filter(q => answers[q.id]?.correct).length
-  const progress         = currentQuestions.length ? Math.round(chapterAnswered / currentQuestions.length * 100) : 0
-
-  function getLevel() {
-    if (chapterAnswered < 3) return { label: 'جاري التقييم', color: '#64748b', icon: '📊' }
-    const pct = chapterCorrect / chapterAnswered
-    if (pct >= 0.9) return { label: 'ممتاز 🌟', color: '#16a34a', icon: '🏆' }
-    if (pct >= 0.7) return { label: 'جيد جداً', color: '#1a4fa8', icon: '⭐' }
-    if (pct >= 0.5) return { label: 'جيد', color: '#d97706', icon: '📈' }
-    return { label: 'يحتاج مراجعة', color: '#dc2626', icon: '📚' }
-  }
-  const level = getLevel()
-
-  const logoUrl      = siteSettings.LOGO_URL || DEFAULT_LOGO
-  const platformName = siteSettings.PLATFORM_NAME || 'هارفست'
-
-  async function handleSignOut() { await supabase.auth.signOut(); router.push('/login') }
-
-  const isExam       = currentChapter?.chapter_type === 'exam'
-  const hasTimer     = isExam && currentChapter?.timer_enabled
-  const showQuestions = !hasTimer || examStarted
 
   return (
-    <div className="h-screen bg-slate-100 flex flex-col overflow-hidden" dir="rtl">
+    <div style={S.page}>
 
       {/* HEADER */}
-      <header className="flex-shrink-0 shadow-xl" style={{ background: 'linear-gradient(135deg, #071d4a, #0a2d6e, #1a4fa8)' }}>
-        <div className="px-5 py-4 grid grid-cols-3 items-center border-b border-white/10">
-          <div className="text-right">
-            <p className="font-black text-white text-lg leading-tight">منصة هارفست</p>
-            <p className="text-blue-200 text-xs">التعليمية</p>
+      <header style={S.header}>
+        <div style={S.headerTop}>
+          {/* Right: name */}
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: 900, color: 'white', fontSize: 18 }}>منصة هارفست</div>
+            <div style={{ color: 'rgba(147,197,253,1)', fontSize: 12 }}>التعليمية</div>
           </div>
-          <div className="flex justify-center">
-            <img src={logoUrl} alt={platformName} className="h-14 object-contain drop-shadow-md"
-                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          {/* Center: logo */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <img src={logo} alt="هارفست" style={{ height: 52, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           </div>
-          <div className="flex items-center justify-end gap-2">
-            {chapterAnswered >= 3 && (
-              <span className="hidden md:flex items-center gap-1 bg-white/10 px-2.5 py-1.5 rounded-xl text-xs font-bold text-white">
-                {level.icon} {level.label}
-              </span>
-            )}
-            <button onClick={() => setShowResults(r => !r)}
-                    className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
-              📊 نتائجي
-            </button>
-            <button onClick={() => setContactOpen(true)}
-                    className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
-              💬 تواصل
-            </button>
-            <button onClick={handleSignOut}
-                    className="bg-red-500/20 hover:bg-red-500/40 px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-colors">
-              خروج
-            </button>
+          {/* Left: actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            {answered >= 3 && <span style={{ background: 'rgba(255,255,255,.1)', color: 'white', padding: '6px 10px', borderRadius: 10, fontSize: 11, fontWeight: 700 }}>{level.t}</span>}
+            <button onClick={() => setShowResults(r => !r)} style={{ background: 'rgba(255,255,255,.1)', color: 'white', padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>📊 نتائجي</button>
+            <button onClick={() => setContact(true)} style={{ background: 'rgba(255,255,255,.1)', color: 'white', padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>💬 تواصل</button>
+            <button onClick={async () => { await supabase.auth.signOut(); router.push('/login') }} style={{ background: 'rgba(239,68,68,.2)', color: 'white', padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>خروج</button>
           </div>
         </div>
-        {subjects.length > 0 && (
-          <div className="flex gap-0.5 px-4 pt-2 overflow-x-auto">
-            {subjects.map(s => (
-              <button key={s.id} onClick={() => switchSubject(s.id)}
-                      className={`px-5 py-2.5 text-sm font-bold rounded-t-xl whitespace-nowrap flex-shrink-0 transition-all ${
-                        activeSubject === s.id ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-200 hover:text-white hover:bg-white/10'
-                      }`}>
-                {s.icon} {s.name}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Subject tabs */}
+        <div style={S.tabs}>
+          {subjects.map(s => (
+            <button key={s.id} style={S.tab(activeSubject === s.id)} onClick={() => { setActiveSubject(s.id); setYearFilter('all'); setExamStarted(false); const first = subjects.find(x => x.id === s.id)?.chapters[0]; if (first) setActiveChapter(first.id) }}>
+              {s.icon} {s.name}
+            </button>
+          ))}
+        </div>
       </header>
 
-      {/* MAIN */}
+      {/* BODY */}
       {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <img src={logoUrl} alt="" className="h-16 mx-auto opacity-40" />
-            <p className="text-slate-400">⏳ جاري التحميل...</p>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <img src={logo} style={{ height: 60, opacity: .4, display: 'block', margin: '0 auto 12px' }} />
+            <div style={{ color: '#94a3b8' }}>⏳ جاري التحميل...</div>
           </div>
         </div>
       ) : subjects.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-          <img src={logoUrl} alt="" className="h-20 mx-auto mb-6 opacity-50" />
-          <p className="text-slate-500 font-semibold text-lg">لم يتم تسجيلك في أي مادة بعد</p>
-          <button onClick={() => setContactOpen(true)}
-                  className="mt-4 bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm">
-            💬 تواصل مع الإدارة
-          </button>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+          <img src={logo} style={{ height: 70, opacity: .5 }} />
+          <p style={{ color: '#64748b', fontWeight: 600 }}>لم يتم تسجيلك في أي مادة بعد</p>
+          <button onClick={() => setContact(true)} style={{ background: '#1d4ed8', color: 'white', padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700 }}>💬 تواصل مع الإدارة</button>
         </div>
       ) : (
-        <div className="flex flex-1" style={{ minHeight: 0 }}>
+        <div style={S.body}>
 
           {/* SIDEBAR */}
-          <aside className="w-52 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-sm" style={{ overflowY: "auto" }}>
-            <div className="px-3 py-2.5 bg-slate-50 border-b border-slate-100">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">الفصول</p>
-            </div>
-            {(currentSubject?.chapters || []).map(c => {
-              const cQ  = c.questions.length
-              const cA  = c.questions.filter(q => answers[q.id]).length
-              const cC  = c.questions.filter(q => answers[q.id]?.correct).length
-              const cP  = cQ ? Math.round(cA / cQ * 100) : 0
+          <div style={S.sidebar}>
+            <div style={{ padding: '10px 12px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 1 }}>الفصول</div>
+            {(sub?.chapters || []).map(c => {
+              const cA = c.questions.filter(q => answers[q.id]).length
+              const cC = c.questions.filter(q => answers[q.id]?.correct).length
+              const cP = c.questions.length ? Math.round(cA / c.questions.length * 100) : 0
               const isA = activeChapter === c.id
               return (
-                <button key={c.id} onClick={() => switchChapter(c.id)}
-                        className={`w-full text-right px-3 py-3 border-b border-slate-50 transition-all ${
-                          isA ? 'bg-blue-700 text-white' : 'text-slate-700 hover:bg-blue-50'
-                        }`}>
-                  <div className="font-semibold text-sm">{c.icon} {c.name}</div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {c.chapter_type === 'exam' && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${isA ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-600'}`}>
-                        📝 اختبار
-                      </span>
-                    )}
-                    <span className={`text-xs ${isA ? 'text-blue-200' : 'text-slate-400'}`}>{cA}/{cQ} • {cP}%</span>
+                <button key={c.id} style={S.sideItem(isA)} onClick={() => { setActiveChapter(c.id); setYearFilter('all'); setExamStarted(false); setExamTime(null) }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{c.icon} {c.name}</div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 4, alignItems: 'center' }}>
+                    {c.chapter_type === 'exam' && <span style={{ fontSize: 10, fontWeight: 700, background: isA ? 'rgba(255,255,255,.2)' : '#fff7ed', color: isA ? 'white' : '#c2410c', padding: '2px 6px', borderRadius: 4 }}>📝 اختبار</span>}
+                    <span style={{ fontSize: 11, color: isA ? 'rgba(255,255,255,.7)' : '#9ca3af' }}>{cA}/{c.questions.length} • {cP}%</span>
                   </div>
-                  <div className={`h-1.5 rounded-full mt-1.5 overflow-hidden ${isA ? 'bg-white/20' : 'bg-slate-100'}`}>
-                    <div className="h-full rounded-full transition-all duration-500"
-                         style={{ width: `${cP}%`, background: isA ? 'white' : cP >= 70 ? '#16a34a' : '#1a4fa8' }} />
+                  <div style={{ height: 4, borderRadius: 2, background: isA ? 'rgba(255,255,255,.2)' : '#f1f5f9', marginTop: 6, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${cP}%`, background: isA ? 'white' : cP >= 70 ? '#16a34a' : '#1d4ed8', borderRadius: 2, transition: 'width .5s' }} />
                   </div>
                 </button>
               )
             })}
-          </aside>
+          </div>
 
-          {/* CONTENT */}
-          <main className="flex-1 min-w-0" style={{ overflowY: "auto" }}>
+          {/* MAIN */}
+          <div style={S.main}>
 
             {/* Results */}
             {showResults && (
-              <div className="bg-white border-b-2 border-blue-100 px-6 py-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-bold text-slate-800 text-lg">📊 نتائجك</h2>
-                  <button onClick={() => setShowResults(false)} className="text-slate-400 hover:text-slate-600 text-xl">×</button>
+              <div style={{ background: 'white', borderBottom: '2px solid #dbeafe', padding: '20px 24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <span style={{ fontWeight: 700, fontSize: 18 }}>📊 نتائجك</span>
+                  <button onClick={() => setShowResults(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>×</button>
                 </div>
-                <div className="grid grid-cols-4 gap-4 mb-4">
-                  {[
-                    { label: 'أجبت',  value: chapterAnswered, icon: '📝', color: '#0a2d6e' },
-                    { label: 'صحيح',  value: chapterCorrect,  icon: '✅', color: '#16a34a' },
-                    { label: 'خطأ',   value: chapterAnswered - chapterCorrect, icon: '❌', color: '#dc2626' },
-                    { label: 'النسبة', value: `${chapterAnswered ? Math.round(chapterCorrect / chapterAnswered * 100) : 0}%`, icon: '🎯', color: level.color },
-                  ].map(s => (
-                    <div key={s.label} className="text-center bg-slate-50 rounded-xl p-3">
-                      <div className="text-2xl mb-1">{s.icon}</div>
-                      <div className="text-xl font-black" style={{ color: s.color }}>{s.value}</div>
-                      <div className="text-slate-400 text-xs">{s.label}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+                  {[['📝','أجبت',answered,'#0a2d6e'],['✅','صحيح',correct,'#16a34a'],['❌','خطأ',answered-correct,'#dc2626'],['🎯','النسبة',`${answered ? Math.round(correct/answered*100) : 0}%`,level.c]].map(([ic,lb,vl,cl]) => (
+                    <div key={String(lb)} style={{ textAlign: 'center', background: '#f8fafc', borderRadius: 12, padding: 12 }}>
+                      <div style={{ fontSize: 24 }}>{ic}</div>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: String(cl) }}>{vl}</div>
+                      <div style={{ fontSize: 12, color: '#94a3b8' }}>{lb}</div>
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3">
-                  <span className="text-2xl">{level.icon}</span>
-                  <p className="font-bold text-slate-800">مستواك: <span style={{ color: level.color }}>{level.label}</span></p>
+                <div style={{ background: '#eff6ff', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 24 }}>🏆</span>
+                  <span style={{ fontWeight: 700 }}>مستواك: <span style={{ color: level.c }}>{level.t}</span></span>
                 </div>
               </div>
             )}
 
-            {/* Progress bar */}
-            <div className="bg-white border-b border-slate-200 px-4 py-2.5 sticky top-0 z-10 shadow-sm">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-700"
-                       style={{ width: `${progress}%`, background: progress >= 70 ? '#16a34a' : 'linear-gradient(90deg, #0a2d6e, #1a4fa8)' }} />
+            {/* Progress + year filter */}
+            <div style={S.stickyBar}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <div style={{ flex: 1, height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: pct >= 70 ? '#16a34a' : '#1d4ed8', transition: 'width .7s', borderRadius: 4 }} />
                 </div>
-                <span className="text-xs font-bold text-slate-600 flex-shrink-0">
-                  {chapterAnswered}/{currentQuestions.length}
-                  {chapterAnswered > 0 && <span className="text-green-600 mr-1"> ({chapterCorrect}✅)</span>}
-                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{answered}/{qs.length} ({correct}✅)</span>
               </div>
-              {availableYears.length > 0 && (
-                <div className="flex gap-1.5 flex-wrap">
-                  {(['all', ...availableYears]).map(y => (
-                    <button key={y} onClick={() => setYearFilter(y)}
-                            className={`px-3 py-0.5 rounded-full text-xs font-bold transition-colors ${
-                              yearFilter === y ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-blue-100'
-                            }`}>
+              {years.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+                  {['all', ...years].map(y => (
+                    <button key={y} onClick={() => setYearFilter(y)} style={{ padding: '2px 12px', borderRadius: 20, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: yearFilter === y ? '#1d4ed8' : '#f1f5f9', color: yearFilter === y ? 'white' : '#475569' }}>
                       {y === 'all' ? 'الكل' : y}
                     </button>
                   ))}
@@ -382,107 +307,92 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* EXAM: start screen */}
+            {/* Exam start screen */}
             {hasTimer && !examStarted && (
-              <div className="bg-orange-50 border-b-2 border-orange-200 px-6 py-8 text-center">
-                <div className="text-5xl mb-3">📝</div>
-                <h3 className="font-black text-orange-800 text-xl mb-2">{currentChapter!.name}</h3>
-                <p className="text-orange-600 text-sm mb-1">مدة الاختبار: <strong>{Math.round((currentChapter!.timer_duration || 1800) / 60)} دقيقة</strong></p>
-                <p className="text-orange-600 text-sm mb-6">عدد الأسئلة: <strong>{currentQuestions.length}</strong></p>
-                <button onClick={() => { setExamStarted(true); setExamTimeLeft(currentChapter!.timer_duration || 1800) }}
-                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-10 py-3 rounded-xl text-base shadow-lg">
+              <div style={{ background: '#fff7ed', borderBottom: '2px solid #fed7aa', padding: '40px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📝</div>
+                <div style={{ fontWeight: 900, fontSize: 22, color: '#9a3412', marginBottom: 8 }}>{ch!.name}</div>
+                <div style={{ color: '#c2410c', fontSize: 14, marginBottom: 6 }}>مدة الاختبار: <strong>{Math.round((ch!.timer_duration || 1800) / 60)} دقيقة</strong></div>
+                <div style={{ color: '#c2410c', fontSize: 14, marginBottom: 24 }}>عدد الأسئلة: <strong>{qs.length}</strong></div>
+                <button onClick={() => { setExamStarted(true); setExamTime(ch!.timer_duration || 1800) }} style={{ background: '#ea580c', color: 'white', border: 'none', borderRadius: 12, padding: '12px 32px', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
                   🚀 ابدأ الاختبار
                 </button>
               </div>
             )}
 
-            {/* EXAM: running timer */}
-            {hasTimer && examStarted && examTimeLeft !== null && (
-              <div className="bg-white border-b-2 border-orange-200 px-6 py-3 flex items-center justify-between sticky top-[52px] z-10 shadow-sm">
-                <span className="font-bold text-slate-700 text-sm">📝 {currentChapter!.name}</span>
-                <ExamTimer
-                  key={activeChapter}
-                  seconds={examTimeLeft}
-                  onEnd={() => setExamStarted(false)}
-                />
+            {/* Exam running timer */}
+            {hasTimer && examStarted && examTime !== null && (
+              <div style={{ background: 'white', borderBottom: '2px solid #fed7aa', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 52, zIndex: 9 }}>
+                <span style={{ fontWeight: 700, color: '#374151' }}>📝 {ch!.name}</span>
+                <ExamTimer key={activeChapter} seconds={examTime} onEnd={() => setExamStarted(false)} />
               </div>
             )}
 
-            {/* QUESTIONS */}
-            {showQuestions && (
-              <div className="p-4 space-y-5">
-                {currentQuestions.map(q => {
-                  const userAnswer = answers[q.id]
-                  const isAnswered = !!userAnswer
-                  const exp        = q.explanations?.[0]
-                  const needsImg   = q.image_url === '__NEEDS_IMAGE__'
-                  const hint       = hints[q.id]
-                  const chat       = aiChats[q.id] || []
-                  const hasVideo   = !!exp?.video_url
-                  if (q.num <= 3) console.log(`Q${q.num} exp:`, exp, 'hasVideo:', hasVideo)
+            {/* Questions */}
+            {(!hasTimer || examStarted) && (
+              <div style={{ padding: 16 }}>
+                {qs.map(q => {
+                  const exp     = q.explanations?.[0]
+                  const hasVid  = !!exp?.video_url
+                  const ans     = answers[q.id]
+                  const isAns   = !!ans
+                  const hint    = hints[q.id]
+                  const isAiOp  = aiOpen === q.id
+                  const chat    = aiChats[q.id] || []
+                  const needImg = q.image_url === '__NEEDS_IMAGE__'
 
                   return (
-                    <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                      <div style={{ display: 'flex', flexDirection: 'row' }}>
+                    <div key={q.id} style={S.card}>
+                      <div style={S.cardInner}>
 
-                        {/* QUESTION COLUMN */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="p-5">
-                            <div className="flex items-center gap-2 mb-3 flex-wrap">
-                              <span className="bg-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">س {q.num}</span>
-                              {q.year && <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-lg">{q.year}</span>}
-                              {isAnswered && (
-                                <span className={`text-xs font-bold px-2 py-1 rounded-lg ${userAnswer.correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                  {userAnswer.correct ? '✅ صحيح' : '❌ خطأ'}
-                                </span>
-                              )}
+                        {/* Question column */}
+                        <div style={S.qCol}>
+                          <div style={{ padding: 20 }}>
+                            {/* Badges */}
+                            <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' as const }}>
+                              <span style={{ background: '#1d4ed8', color: 'white', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6 }}>س {q.num}</span>
+                              {q.year && <span style={{ background: '#fef3c7', color: '#92400e', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 6 }}>{q.year}</span>}
+                              {isAns && <span style={{ background: ans.correct ? '#dcfce7' : '#fee2e2', color: ans.correct ? '#166534' : '#991b1b', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 6 }}>{ans.correct ? '✅ صحيح' : '❌ خطأ'}</span>}
                             </div>
 
-                            <p className="text-slate-800 font-medium mb-4 leading-relaxed">{q.text}</p>
+                            {/* Question text */}
+                            <p style={{ color: '#1e293b', fontWeight: 500, lineHeight: 1.7, marginBottom: 16, fontSize: 15 }}>{q.text}</p>
 
-                            {q.image_url && !needsImg && (
-                              <img src={q.image_url} alt="" className="max-h-52 rounded-xl mb-4 object-contain border border-slate-100" />
-                            )}
-                            {needsImg && (
-                              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-4 mb-4 text-center text-slate-400 text-sm">
-                                🖼️ صورة قيد الإضافة
-                              </div>
-                            )}
+                            {/* Image */}
+                            {q.image_url && !needImg && <img src={q.image_url} alt="" style={{ maxHeight: 200, borderRadius: 12, marginBottom: 16, border: '1px solid #f1f5f9' }} />}
+                            {needImg && <div style={{ background: '#f8fafc', border: '2px dashed #e2e8f0', borderRadius: 12, padding: 16, marginBottom: 16, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>🖼️ صورة قيد الإضافة</div>}
 
-                            <div className="space-y-2 mb-4">
+                            {/* Options */}
+                            <div style={{ marginBottom: 16 }}>
                               {q.options.sort((a, b) => a.order_num - b.order_num).map(opt => {
-                                const isSel = userAnswer?.optionId === opt.id
-                                let cls = 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
-                                if (isAnswered) {
-                                  if (opt.is_correct)  cls = 'bg-green-50 border-green-400 text-green-800 font-semibold'
-                                  else if (isSel)       cls = 'bg-red-50 border-red-400 text-red-700'
-                                  else                  cls = 'bg-slate-50 border-slate-100 text-slate-400 opacity-50'
+                                const isSel = ans?.optionId === opt.id
+                                let bg = '#f8fafc', border = '#e2e8f0', color = '#374151'
+                                if (isAns) {
+                                  if (opt.is_correct)     { bg = '#f0fdf4'; border = '#4ade80'; color = '#166534' }
+                                  else if (isSel)          { bg = '#fef2f2'; border = '#f87171'; color = '#991b1b' }
+                                  else                     { bg = '#f8fafc'; border = '#f1f5f9'; color = '#9ca3af' }
                                 }
                                 return (
-                                  <button key={opt.id} onClick={() => handleAnswer(q, opt)} disabled={isAnswered}
-                                          className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border-2 transition-all text-right disabled:cursor-default ${cls}`}>
-                                    <span className="font-bold w-6 flex-shrink-0 text-sm">{opt.letter}</span>
-                                    <span className="flex-1 text-sm">{opt.text}</span>
-                                    {isAnswered && opt.is_correct && <span>✅</span>}
-                                    {isAnswered && isSel && !opt.is_correct && <span>❌</span>}
+                                  <button key={opt.id} onClick={() => answer(q, opt)} disabled={isAns}
+                                          style={{ ...S.optBase, background: bg, borderColor: border, color, opacity: isAns && !opt.is_correct && !isSel ? .5 : 1 }}>
+                                    <span style={{ fontWeight: 700, minWidth: 20, fontSize: 13 }}>{opt.letter}</span>
+                                    <span style={{ flex: 1, fontSize: 14 }}>{opt.text}</span>
+                                    {isAns && opt.is_correct && <span>✅</span>}
+                                    {isAns && isSel && !opt.is_correct && <span>❌</span>}
                                   </button>
                                 )
                               })}
                             </div>
 
-                            <div className="flex gap-2 flex-wrap">
-                              <button onClick={() => getHint(q)} disabled={hintLoading === q.id}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 disabled:opacity-50 transition-colors">
-                                {hintLoading === q.id ? '⏳' : '💡'} تلميح ذكي
+                            {/* Action buttons */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 8 }}>
+                              <button onClick={() => getHint(q)} disabled={!!hintLoad} style={S.btnSmall('#b45309', '#fffbeb', '#fde68a')}>
+                                {hintLoad === q.id ? '⏳' : '💡'} تلميح ذكي
                               </button>
-                              <button onClick={() => setRevealedAns(a => ({ ...a, [q.id]: !a[q.id] }))}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-colors">
-                                🔍 {revealedAns[q.id] ? 'إخفاء' : 'عرض الإجابة'}
+                              <button onClick={() => setOpenAns(a => ({ ...a, [q.id]: !a[q.id] }))} style={S.btnSmall('#1e40af', '#eff6ff', '#bfdbfe')}>
+                                🔍 {openAns[q.id] ? 'إخفاء' : 'عرض الإجابة'}
                               </button>
-                              <button onClick={() => setAiOpen(aiOpen === q.id ? null : q.id)}
-                                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
-                                        aiOpen === q.id ? 'border-purple-400 bg-purple-100 text-purple-800' : 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100'
-                                      }`}>
+                              <button onClick={() => setAiOpen(aiOpen === q.id ? '' : q.id)} style={S.btnSmall('#6d28d9', '#f5f3ff', '#ddd6fe')}>
                                 🤖 المساعد الذكي
                               </button>
                             </div>
@@ -490,88 +400,71 @@ export default function StudentDashboard() {
 
                           {/* Hint */}
                           {hint && (
-                            <div className="border-t border-amber-100 bg-amber-50 px-5 py-3">
-                              <p className="text-xs font-bold text-amber-700 mb-1">💡 تلميح ذكي:</p>
-                              <p className="text-sm text-amber-800 leading-relaxed">{hint}</p>
+                            <div style={S.panel('#fffbeb', '#fde68a')}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>💡 تلميح ذكي:</div>
+                              <div style={{ fontSize: 13, color: '#78350f', lineHeight: 1.6 }}>{hint}</div>
                             </div>
                           )}
 
                           {/* Answer */}
-                          {revealedAns[q.id] && (
-                            <div className="border-t border-blue-100 bg-blue-50 px-5 py-3">
-                              <p className="text-xs font-bold text-blue-700 mb-1.5">🔍 الإجابة الصحيحة:</p>
+                          {openAns[q.id] && (
+                            <div style={S.panel('#eff6ff', '#bfdbfe')}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: '#1e40af', marginBottom: 6 }}>🔍 الإجابة الصحيحة:</div>
                               {q.options.filter(o => o.is_correct).map(o => (
-                                <p key={o.id} className="text-sm font-bold text-blue-900">{o.letter} — {o.text}</p>
+                                <div key={o.id} style={{ fontWeight: 700, color: '#1e3a8a', fontSize: 14 }}>{o.letter} — {o.text}</div>
                               ))}
-                              {q.ans_text && <p className="text-xs text-blue-600 mt-1.5">{q.ans_text}</p>}
+                              {q.ans_text && <div style={{ fontSize: 12, color: '#3b82f6', marginTop: 6 }}>{q.ans_text}</div>}
                             </div>
                           )}
 
                           {/* AI */}
-                          {aiOpen === q.id && (
-                            <div className="border-t border-purple-100">
-                              <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'linear-gradient(90deg, #7c3aed, #6d28d9)' }}>
+                          {isAiOp && (
+                            <div style={{ borderTop: '1px solid #ede9fe' }}>
+                              <div style={{ background: 'linear-gradient(90deg,#7c3aed,#6d28d9)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <span>🤖</span>
-                                <span className="text-xs font-bold text-white">المساعد الذكي</span>
+                                <span style={{ color: 'white', fontWeight: 700, fontSize: 13 }}>المساعد الذكي</span>
                               </div>
-                              <div className="bg-purple-50 p-3 space-y-2 max-h-52 overflow-y-auto">
-                                {chat.length === 0 && (
-                                  <p className="text-xs text-purple-400 text-center py-3">اختر إجابة وسيشرح لك تلقائياً، أو اسأل مباشرة...</p>
-                                )}
+                              <div style={{ background: '#faf5ff', padding: 12, maxHeight: 200, overflowY: 'auto' as const }}>
+                                {chat.length === 0 && <div style={{ color: '#a78bfa', fontSize: 12, textAlign: 'center', padding: 12 }}>اختر إجابة وسيشرح تلقائياً، أو اسأل مباشرة...</div>}
                                 {chat.map((m, i) => (
-                                  <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
-                                      m.role === 'user' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 shadow-sm border border-purple-100'
-                                    }`}>
+                                  <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
+                                    <div style={{ maxWidth: '85%', padding: '8px 12px', borderRadius: 16, fontSize: 12, lineHeight: 1.5, background: m.role === 'user' ? '#7c3aed' : 'white', color: m.role === 'user' ? 'white' : '#374151', boxShadow: '0 1px 3px rgba(0,0,0,.1)' }}>
                                       {m.content}
                                     </div>
                                   </div>
                                 ))}
-                                {aiLoading && (
-                                  <div className="flex justify-start">
-                                    <div className="bg-white px-4 py-2 rounded-2xl text-xs text-slate-400 shadow-sm">⏳ يفكر...</div>
-                                  </div>
-                                )}
-                                <div ref={aiEndRef} />
+                                {aiLoad && <div style={{ color: '#a78bfa', fontSize: 12 }}>⏳ يفكر...</div>}
+                                <div ref={aiRef} />
                               </div>
-                              <div className="px-3 pb-3 pt-2 flex gap-2 bg-purple-50 border-t border-purple-100">
-                                <input value={aiInput} onChange={e => setAiInput(e.target.value)}
-                                       onKeyDown={e => e.key === 'Enter' && sendAiMessage(q)}
-                                       className="flex-1 border border-purple-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-400 bg-white"
+                              <div style={{ background: '#faf5ff', borderTop: '1px solid #ede9fe', padding: '8px 12px', display: 'flex', gap: 8 }}>
+                                <input value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendAI(q)}
+                                       style={{ flex: 1, border: '1px solid #ddd6fe', borderRadius: 10, padding: '8px 12px', fontSize: 12, outline: 'none', background: 'white' }}
                                        placeholder="اسأل عن السؤال..." />
-                                <button onClick={() => sendAiMessage(q)} disabled={aiLoading || !aiInput.trim()}
-                                        className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-40">
-                                  ↑
-                                </button>
+                                <button onClick={() => sendAI(q)} disabled={aiLoad || !aiInput.trim()} style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: aiLoad || !aiInput.trim() ? .4 : 1 }}>↑</button>
                               </div>
                             </div>
                           )}
                         </div>
 
-                        {/* VIDEO COLUMN */}
-                        {hasVideo && (
-                          <div style={{ width: '300px', flexShrink: 0, borderLeft: '1px solid #d1fae5', background: '#ecfdf5', display: 'flex', flexDirection: 'column' }}>
-                            <p style={{ color: 'red', fontWeight: 'bold', padding: '10px' }}>VIDEO BLOCK TEST - Q{q.num}</p>
-                            <div className="px-3 py-2.5 flex items-center gap-2" style={{ background: '#059669' }}>
-                              <span className="text-white text-sm">🎬</span>
-                              <span className="text-xs font-bold text-white">شرح المعلم</span>
+                        {/* Video column */}
+                        {hasVid && (
+                          <div style={S.vCol}>
+                            <div style={S.vHeader}>
+                              <span style={{ color: 'white', fontSize: 16 }}>🎬</span>
+                              <span style={{ color: 'white', fontWeight: 700, fontSize: 12 }}>شرح المعلم</span>
                             </div>
-                            {revealedVideos[q.id] ? (
-                              <div className="flex-1 p-2">
-                                <video src={exp!.video_url!} controls className="w-full rounded-lg bg-black" style={{ minHeight: '180px' }} />
-                                {exp!.text_note && <p className="text-xs text-emerald-700 mt-2 px-1">✏️ {exp!.text_note}</p>}
-                                <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: false }))}
-                                        className="mt-2 w-full text-xs text-emerald-600 hover:text-emerald-800 font-medium">
-                                  ▲ إخفاء
-                                </button>
+                            {openVideo[q.id] ? (
+                              <div style={{ padding: 8, flex: 1 }}>
+                                <video src={exp!.video_url!} controls style={{ width: '100%', borderRadius: 8, background: 'black', minHeight: 180 }} />
+                                {exp!.text_note && <p style={{ fontSize: 11, color: '#065f46', marginTop: 8 }}>✏️ {exp!.text_note}</p>}
+                                <button onClick={() => setOpenVideo(v => ({ ...v, [q.id]: false }))} style={{ marginTop: 8, width: '100%', background: 'none', border: 'none', color: '#059669', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>▲ إخفاء</button>
                               </div>
                             ) : (
-                              <button onClick={() => setRevealedVideos(v => ({ ...v, [q.id]: true }))}
-                                      className="flex-1 flex flex-col items-center justify-center gap-3 p-4 hover:bg-emerald-100 transition-colors">
-                                <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg" style={{ background: '#059669' }}>
-                                  <span className="text-white text-2xl">▶</span>
+                              <button style={S.vPlay} onClick={() => setOpenVideo(v => ({ ...v, [q.id]: true }))}>
+                                <div style={S.playBtn}>
+                                  <span style={{ color: 'white', fontSize: 24, marginRight: -4 }}>▶</span>
                                 </div>
-                                <p className="text-xs font-semibold text-emerald-700 text-center leading-relaxed">اضغط لمشاهدة<br />شرح المعلم</p>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: '#065f46', lineHeight: 1.5 }}>اضغط لمشاهدة<br />شرح المعلم</span>
                               </button>
                             )}
                           </div>
@@ -583,35 +476,33 @@ export default function StudentDashboard() {
                 })}
               </div>
             )}
-          </main>
+          </div>
         </div>
       )}
 
-      {/* CONTACT MODAL */}
-      {contactOpen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="px-5 py-4 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #0a2d6e, #1a4fa8)' }}>
-              <div className="flex items-center gap-2">
-                <img src={logoUrl} alt="" className="h-7 object-contain" />
-                <h2 className="font-bold text-white">تواصل معنا</h2>
+      {/* Contact modal */}
+      {contact && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'white', borderRadius: 20, width: '100%', maxWidth: 380, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+            <div style={{ background: 'linear-gradient(135deg,#0a2d6e,#1a4fa8)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <img src={logo} style={{ height: 28, objectFit: 'contain' }} />
+                <span style={{ color: 'white', fontWeight: 700 }}>تواصل معنا</span>
               </div>
-              <button onClick={() => setContactOpen(false)} className="text-white/60 hover:text-white text-xl">×</button>
+              <button onClick={() => setContact(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.6)', fontSize: 22, cursor: 'pointer' }}>×</button>
             </div>
-            <div className="p-5 space-y-3">
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { icon: '📧', label: 'البريد الإلكتروني', value: siteSettings.CONTACT_EMAIL || 'info@harvste.com', action: () => window.open(`mailto:${siteSettings.CONTACT_EMAIL || 'info@harvste.com'}`) },
-                { icon: '💬', label: 'واتساب', value: 'تواصل عبر واتساب', action: () => window.open(`https://wa.me/${siteSettings.CONTACT_WHATSAPP || '966500000000'}`) },
-                { icon: '🌐', label: 'الموقع الرسمي', value: siteSettings.CONTACT_WEBSITE || 'harvste.com', action: () => window.open(siteSettings.CONTACT_WEBSITE || 'https://www.harvste.com') },
+                { ic: '📧', lb: 'البريد الإلكتروني', val: settings.CONTACT_EMAIL || 'info@harvste.com', fn: () => window.open(`mailto:${settings.CONTACT_EMAIL || 'info@harvste.com'}`) },
+                { ic: '💬', lb: 'واتساب', val: 'تواصل عبر واتساب', fn: () => window.open(`https://wa.me/${settings.CONTACT_WHATSAPP || '966500000000'}`) },
+                { ic: '🌐', lb: 'الموقع الرسمي', val: settings.CONTACT_WEBSITE || 'harvste.com', fn: () => window.open(settings.CONTACT_WEBSITE || 'https://www.harvste.com') },
               ].map(item => (
-                <button key={item.label} onClick={item.action}
-                        className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-right">
-                  <span className="text-2xl">{item.icon}</span>
+                <button key={item.lb} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', textAlign: 'right' as const, width: '100%' }}>
+                  <span style={{ fontSize: 24 }}>{item.ic}</span>
                   <div>
-                    <p className="font-semibold text-slate-800 text-sm">{item.label}</p>
-                    <p className="text-slate-400 text-xs">{item.value}</p>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>{item.lb}</div>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{item.val}</div>
                   </div>
-                  <span className="mr-auto text-slate-300">←</span>
                 </button>
               ))}
             </div>
