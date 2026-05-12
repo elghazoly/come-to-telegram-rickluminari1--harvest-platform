@@ -8,14 +8,17 @@ export async function POST(req: Request) {
   const path = formData.get('path') as string
   if (!file || !path) return NextResponse.json({ error: 'missing params' }, { status: 400 })
 
+  const buffer = Buffer.from(await file.arrayBuffer())
+
   const r = await fetch(`${WORKER_URL}/${path}`, {
     method: 'PUT',
-    headers: { 'X-Auth-Token': WORKER_TOKEN, 'Content-Type': file.type },
-    body: file.stream(),
-    // @ts-ignore
-    duplex: 'half',
+    headers: { 'X-Auth-Token': WORKER_TOKEN, 'Content-Type': file.type || 'video/mp4' },
+    body: buffer,
   })
-  if (!r.ok) return NextResponse.json({ error: r.status }, { status: 400 })
+  if (!r.ok) {
+    const errText = await r.text()
+    return NextResponse.json({ error: errText }, { status: 400 })
+  }
   const data = await r.json()
   return NextResponse.json({ url: data.url })
 }
