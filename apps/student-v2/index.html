@@ -834,17 +834,10 @@ async function initApp() {
     subjectIds = data?.map(e => e.subject_id) || []
   }
 
-  // ── Show home immediately with skeleton ──────────────────────────────────
+  // ── Show app shell immediately ────────────────────────────────────────────
   STATE.profile = prof
   document.getElementById('login-page').classList.add('hidden')
   document.getElementById('app-page').classList.remove('hidden')
-  document.getElementById('welcome-name').textContent = 'مرحباً، ' + (prof?.full_name || '') + '!'
-  const sidebarName = document.getElementById('sidebar-name')
-  if (sidebarName) sidebarName.textContent = prof?.full_name || ''
-  document.getElementById('home-page').style.display = 'block'
-  document.getElementById('subjects-view').style.display = 'none'
-  document.getElementById('subject-tabs').style.display = 'none'
-  document.getElementById('home-blocks').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8">⏳ جاري تحميل بياناتك...</div>'
 
   // ── Parallel batch loading ────────────────────────────────────────────────
   const built = []
@@ -897,8 +890,17 @@ function showHome() {
   document.getElementById('home-page').style.display = 'block'
   document.getElementById('subjects-view').style.display = 'none'
   document.getElementById('subject-tabs').style.display = 'none'
-  // Welcome
-  document.getElementById('welcome-name').textContent = 'مرحباً، ' + (STATE.profile?.full_name || '') + '! 👋'
+
+  const name = STATE.profile?.full_name || ''
+  document.getElementById('welcome-name').textContent = 'مرحباً، ' + name + '!'
+  const sn = document.getElementById('sidebar-name')
+  if (sn) sn.textContent = name
+  const appSN = document.getElementById('app-sidebar-name')
+  if (appSN) appSN.textContent = name
+  if (STATE.siteSettings?.LOGO_URL) {
+    const li = document.getElementById('logo-img'); if(li) li.src = STATE.siteSettings.LOGO_URL
+    const sl = document.getElementById('sidebar-logo'); if(sl) sl.src = STATE.siteSettings.LOGO_URL
+  }
   // Stats
   const allAnswered = Object.keys(STATE.answers).length
   const allCorrect  = Object.values(STATE.answers).filter(a => a.correct).length
