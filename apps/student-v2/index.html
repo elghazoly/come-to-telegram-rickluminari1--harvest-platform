@@ -1293,7 +1293,12 @@ function renderQuestion(q) {
       <div class="v-header">🎬 <span>شرح المعلم</span></div>
       ${hasVid ? (vidOpen ? `
         <div class="v-video-wrap">
-          <video src="${exp.video_url}" controls></video>
+          <video controls playsinline style="width:100%;border-radius:8px;max-height:280px;background:#000">
+            <source src="${exp.video_url}" type="video/webm">
+            <source src="${exp.video_url.replace('.webm','.mp4')}" type="video/mp4">
+            <source src="${exp.video_url.replace('.mp4','.webm')}" type="video/webm">
+            متصفحك لا يدعم تشغيل الفيديو
+          </video>
           ${exp.text_note ? `<p style="font-size:11px;color:#065f46;margin-top:8px">✏️ ${exp.text_note}</p>` : ''}
           <button class="v-hide" onclick="toggleVideo('${q.id}')">▲ إخفاء</button>
         </div>` : `
