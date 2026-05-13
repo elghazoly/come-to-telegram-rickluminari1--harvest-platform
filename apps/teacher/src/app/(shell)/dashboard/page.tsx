@@ -199,7 +199,7 @@ export default function TeacherDashboard() {
               <h2 style={{ fontSize:22, fontWeight:800, color:'#1e293b' }}>مرحباً، {profile?.full_name} 👋</h2>
               <p style={{ color:'#64748b', fontSize:13, marginTop:4 }}>لوحة تحكم المعلم</p>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:16 }}>
               {/* المواد */}
               <div onClick={() => window.location.href='/subjects'}
                    style={{ background:'white', borderRadius:18, padding:24, cursor:'pointer', border:'1.5px solid #bfdbfe', boxShadow:'0 2px 12px rgba(29,78,216,.08)', transition:'all .2s' }}
@@ -250,7 +250,7 @@ export default function TeacherDashboard() {
           </div>
 
           {/* RIGHT — 3 blocks stacked */}
-          <div style={{ width:260, flexShrink:0, padding:'24px 16px', overflowY:'auto' as const, background:'#f8faff', borderRight:'1px solid #e8f0fe' }}>
+          <div style={{ width:'min(260px, 100%)', flexShrink:0, padding:'24px 16px', overflowY:'auto' as const, background:'#f8faff', borderRight:'1px solid #e8f0fe' }}>
             {[
               { icon:'📅', title:'أنشئ جدول مذاكرة لطلابك', desc:'خطة دراسية أسبوعية مخصصة', color:'#1d4ed8', bg:'#eff6ff', border:'#bfdbfe' },
               { icon:'🎥', title:'جدول الحصص المباشرة', desc:'المواعيد المتاحة للحصص الخاصة', color:'#15803d', bg:'#f0fdf4', border:'#bbf7d0' },

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 
@@ -25,11 +25,19 @@ export default function AppShell({ children, title = 'منصة المعلم' }: 
   const router   = useRouter()
   const pathname = usePathname()
   const [open, setOpen] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
 
-  // Auto-collapse sidebar on mobile
-  if (typeof window !== 'undefined') {
-    // handled via CSS media queries
-  }
+  useEffect(() => {
+    function check() {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (mobile) setOpen(false)
+      else setOpen(true)
+    }
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,67 +49,106 @@ export default function AppShell({ children, title = 'منصة المعلم' }: 
     router.push('/login')
   }
 
+  const navItemStyle = (isActive: boolean) => isMobile ? {
+    display: 'flex', flexDirection: 'column' as const, alignItems: 'center',
+    gap: 3, padding: '8px 12px', border: 'none', cursor: 'pointer',
+    background: isActive ? '#eff6ff' : 'none',
+    color: isActive ? '#1d4ed8' : '#64748b',
+    borderBottom: `2px solid ${isActive ? '#1d4ed8' : 'transparent'}`,
+    fontSize: 10, fontWeight: isActive ? 600 : 500,
+    whiteSpace: 'nowrap' as const, minWidth: 55, flexShrink: 0,
+  } : {
+    display: 'flex', alignItems: 'center', gap: 10,
+    padding: '10px 16px', width: '100%', border: 'none',
+    background: isActive ? '#eff6ff' : 'none',
+    color: isActive ? '#1d4ed8' : '#475569',
+    borderRight: `3px solid ${isActive ? '#1d4ed8' : 'transparent'}`,
+    fontSize: 13, fontWeight: isActive ? 600 : 500,
+    cursor: 'pointer', textAlign: 'right' as const,
+    whiteSpace: 'nowrap' as const, transition: 'all .15s',
+  }
+
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc', overflow: 'hidden' }}>
+
+      {/* HEADER */}
       <header style={{ background: 'white', borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,.06)', flexShrink: 0, zIndex: 20 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto 1fr', alignItems: 'center', padding: '10px 20px', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto 1fr', alignItems: 'center', padding: isMobile ? '8px 12px' : '10px 20px', gap: 8 }}>
+          {/* Menu toggle */}
           <button onClick={() => setOpen(o => !o)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: '#475569', display: 'flex' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: '#475569', display: 'flex', alignItems: 'center' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
+          {/* Name */}
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 17 }}>منصة هارفست</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{title}</div>
+            <div style={{ fontWeight: 800, color: '#1e293b', fontSize: isMobile ? 15 : 17 }}>منصة هارفست</div>
+            {!isMobile && <div style={{ fontSize: 11, color: '#94a3b8' }}>{title}</div>}
           </div>
+          {/* Logo */}
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <img src={LOGO} alt="هارفست" style={{ height: 'clamp(36px, 5vw, 60px)', objectFit: 'contain' }} />
+            <img src={LOGO} alt="هارفست" style={{ height: isMobile ? 36 : 60, objectFit: 'contain' }} />
           </div>
+          {/* Actions */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            {!isMobile && <span style={{ fontSize: 12, color: '#94a3b8', padding: '6px 0' }}>{title}</span>}
             <button onClick={signOut}
-                    style={{ background: '#fef2f2', color: '#dc2626', border: 'none', padding: '6px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    style={{ background: '#fef2f2', color: '#dc2626', border: 'none', padding: isMobile ? '5px 10px' : '6px 14px', borderRadius: 10, fontSize: isMobile ? 12 : 13, fontWeight: 600, cursor: 'pointer' }}>
               خروج
             </button>
           </div>
         </div>
       </header>
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        <div style={{
-          width: open ? 220 : 0, minWidth: open ? 220 : 0, flexShrink: 0,
-          background: 'white', borderLeft: '1px solid #e2e8f0',
-          display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          transition: 'width .25s ease, min-width .25s ease'
-        }}>
-          <div style={{ padding: '16px 12px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src={LOGO} alt="" style={{ height: 30, objectFit: 'contain' }} />
-            <span style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>منصة المعلم</span>
-          </div>
-          <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
+
+      {/* BODY */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0, flexDirection: isMobile ? 'column' : 'row' }}>
+
+        {/* SIDEBAR — horizontal on mobile, vertical on desktop */}
+        {isMobile ? (
+          // Mobile: horizontal tab bar
+          <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', overflowX: 'auto', flexShrink: 0 }}>
             {NAV_ITEMS.map(item => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               return (
-                <button key={item.href} onClick={() => router.push(item.href)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 10,
-                          padding: '10px 16px', width: '100%', border: 'none',
-                          background: isActive ? '#eff6ff' : 'none',
-                          color: isActive ? '#1d4ed8' : '#475569',
-                          borderRight: `3px solid ${isActive ? '#1d4ed8' : 'transparent'}`,
-                          fontSize: 13, fontWeight: isActive ? 600 : 500,
-                          cursor: 'pointer', textAlign: 'right', whiteSpace: 'nowrap',
-                          transition: 'all .15s'
-                        }}>
+                <button key={item.href} onClick={() => router.push(item.href)} style={navItemStyle(isActive)}>
                   <NavIcon d={item.icon} />
                   {item.label}
                 </button>
               )
             })}
-          </nav>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
+          </div>
+        ) : (
+          // Desktop: vertical sidebar
+          <div style={{
+            width: open ? 220 : 0, minWidth: open ? 220 : 0, flexShrink: 0,
+            background: 'white', borderLeft: '1px solid #e2e8f0',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            transition: 'width .25s ease, min-width .25s ease'
+          }}>
+            <div style={{ padding: '16px 12px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src={LOGO} alt="" style={{ height: 30, objectFit: 'contain', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>منصة المعلم</span>
+            </div>
+            <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
+              {NAV_ITEMS.map(item => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                return (
+                  <button key={item.href} onClick={() => router.push(item.href)} style={navItemStyle(isActive)}>
+                    <NavIcon d={item.icon} />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+        )}
+
+        {/* CONTENT */}
+        <div style={{ flex: 1, overflowY: 'auto', minWidth: 0, minHeight: 0 }}>
           {children}
         </div>
+
       </div>
     </div>
   )
