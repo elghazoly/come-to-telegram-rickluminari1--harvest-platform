@@ -834,16 +834,53 @@ async function initApp() {
     subjectIds = data?.map(e => e.subject_id) || []
   }
 
+  // ── Show home immediately with skeleton ──────────────────────────────────
+  STATE.profile = prof
+  document.getElementById('login-page').classList.add('hidden')
+  document.getElementById('app-page').classList.remove('hidden')
+  document.getElementById('welcome-name').textContent = 'مرحباً، ' + (prof?.full_name || '') + '!'
+  const sidebarName = document.getElementById('sidebar-name')
+  if (sidebarName) sidebarName.textContent = prof?.full_name || ''
+  document.getElementById('home-page').style.display = 'block'
+  document.getElementById('subjects-view').style.display = 'none'
+  document.getElementById('subject-tabs').style.display = 'none'
+  document.getElementById('home-blocks').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8">⏳ جاري تحميل بياناتك...</div>'
+
+  // ── Parallel batch loading ────────────────────────────────────────────────
   const built = []
-  for (const sid of subjectIds) {
-    const { data: sub } = await db.from('subjects').select('*').eq('id', sid).single()
+
+  // Load all subjects at once
+  const subjectsData = await Promise.all(subjectIds.map(sid =>
+    db.from('subjects').select('*').eq('id', sid).single().then(r => r.data)
+  ))
+
+  // Load all chapters for all subjects at once
+  const chaptersData = await Promise.all(subjectIds.map(sid =>
+    db.from('chapters').select('*').eq('subject_id', sid).order('order_num').then(r => r.data || [])
+  ))
+
+  // Collect all chapter IDs
+  const allChapterIds = chaptersData.flat().map(ch => ch.id)
+
+  // Load ALL questions for ALL chapters in ONE query
+  const { data: allQuestions } = allChapterIds.length
+    ? await db.from('questions').select('*,options(*),explanations(*)').in('chapter_id', allChapterIds).order('order_num')
+    : { data: [] }
+
+  // Group questions by chapter_id
+  const qByChapter = {}
+  for (const q of allQuestions || []) {
+    if (!qByChapter[q.chapter_id]) qByChapter[q.chapter_id] = []
+    qByChapter[q.chapter_id].push(q)
+  }
+
+  // Assemble subjects
+  for (let i = 0; i < subjectIds.length; i++) {
+    const sub = subjectsData[i]
     if (!sub) continue
-    const { data: chs } = await db.from('chapters').select('*').eq('subject_id', sid).order('order_num')
-    const chapFull = []
-    for (const ch of chs || []) {
-      const { data: qs } = await db.from('questions').select('*,options(*),explanations(*)').eq('chapter_id', ch.id).order('order_num')
-      chapFull.push({ ...ch, questions: qs || [] })
-    }
+    const chapFull = (chaptersData[i] || []).map(ch => ({
+      ...ch, questions: qByChapter[ch.id] || []
+    }))
     built.push({ ...sub, chapters: chapFull })
   }
 
@@ -853,7 +890,6 @@ async function initApp() {
     if (built[0].chapters.length) STATE.activeChapter = built[0].chapters[0].id
   }
 
-  renderAll()
   showHome()
 }
 
