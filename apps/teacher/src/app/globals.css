@@ -18,3 +18,42 @@ h3 { font-size: 1.3rem !important; }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 .animate-fade-in { animation: fade-in 0.2s ease-out; }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE — Tablet & Mobile
+═══════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  .grid-cols-2 { grid-template-columns: 1fr !important; }
+  .grid-cols-3 { grid-template-columns: 1fr 1fr !important; }
+}
+
+@media (max-width: 768px) {
+  /* Tables scroll horizontally */
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+
+  /* Cards stack */
+  .grid { grid-template-columns: 1fr !important; }
+
+  /* Header nav hide on mobile */
+  nav.flex { gap: 4px !important; }
+  nav.flex a { padding: 4px 8px !important; font-size: 11px !important; }
+
+  /* Panels full width */
+  .max-w-sm, .max-w-md, .max-w-lg { max-width: 100% !important; }
+
+  /* Forms padding */
+  .p-10 { padding: 20px !important; }
+  .p-8  { padding: 16px !important; }
+  .p-6  { padding: 12px !important; }
+
+  /* Text adjustments */
+  .text-2xl { font-size: 1.3rem !important; }
+  .text-3xl { font-size: 1.5rem !important; }
+}
+
+@media (max-width: 480px) {
+  .text-xl { font-size: 1.1rem !important; }
+  .px-6 { padding-left: 12px !important; padding-right: 12px !important; }
+  .py-4 { padding-top: 10px !important; padding-bottom: 10px !important; }
+}

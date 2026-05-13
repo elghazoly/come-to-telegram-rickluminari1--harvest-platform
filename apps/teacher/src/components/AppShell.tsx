@@ -26,6 +26,11 @@ export default function AppShell({ children, title = 'منصة المعلم' }: 
   const pathname = usePathname()
   const [open, setOpen] = useState(true)
 
+  // Auto-collapse sidebar on mobile
+  if (typeof window !== 'undefined') {
+    // handled via CSS media queries
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -51,7 +56,7 @@ export default function AppShell({ children, title = 'منصة المعلم' }: 
             <div style={{ fontSize: 11, color: '#94a3b8' }}>{title}</div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <img src={LOGO} alt="هارفست" style={{ height: 60, objectFit: 'contain' }} />
+            <img src={LOGO} alt="هارفست" style={{ height: 'clamp(36px, 5vw, 60px)', objectFit: 'contain' }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={signOut}

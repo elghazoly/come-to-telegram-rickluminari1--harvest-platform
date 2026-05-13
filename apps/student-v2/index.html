@@ -281,6 +281,127 @@
   .schedule-subj { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:8px; }
   .schedule-input { width:50px; border:1px solid #e2e8f0; border-radius:6px; padding:3px 6px; font-size:12px; text-align:center; }
 
+
+  /* ═══════════════════════════════════════════
+     RESPONSIVE — Tablet & Mobile
+  ═══════════════════════════════════════════ */
+
+  /* Tablet — 768px to 1024px */
+  @media (max-width: 1024px) {
+    /* Home layout: hide right panel */
+    .home-right { display: none; }
+    .home-layout { flex-direction: row; }
+    .home-center { padding: 16px; }
+    .blocks-grid { grid-template-columns: 1fr 1fr; }
+    /* Sidebar narrower */
+    .home-sidebar { width: 180px; min-width: 180px; }
+    /* Questions layout */
+    .card-inner { flex-direction: column !important; }
+    .v-col { width: 100% !important; border-left: none !important; border-top: 1px solid #a7f3d0; }
+    /* App sidebar */
+    .app-sidebar { width: 180px; min-width: 180px; }
+  }
+
+  /* Mobile — up to 768px */
+  @media (max-width: 768px) {
+    /* Header */
+    .header-top { grid-template-columns: auto 1fr auto !important; padding: 8px 12px !important; }
+    .header-logo img { height: 36px !important; }
+    .header-name h2 { font-size: 15px !important; }
+    .header-name p { display: none; }
+    .hbtn span { display: none; }
+
+    /* Subject tabs */
+    .subject-tabs { padding: 0 8px; }
+    .tab { padding: 6px 12px; font-size: 12px; }
+
+    /* Home layout: stack vertically */
+    .home-layout { flex-direction: column; }
+    .home-sidebar { width: 100% !important; min-width: unset !important; flex-direction: row !important; overflow-x: auto; height: auto; border-left: none; border-bottom: 1px solid #e2e8f0; }
+    .sidebar-logo { display: none; }
+    .sidebar-nav { display: flex !important; flex-direction: row !important; padding: 4px 8px; gap: 4px; overflow-x: auto; }
+    .nav-item { flex-direction: column !important; padding: 8px 10px !important; font-size: 10px !important; gap: 4px !important; border-right: none !important; border-bottom: 3px solid transparent !important; white-space: nowrap !important; min-width: 60px; align-items: center; }
+    .nav-item.active { border-bottom-color: #1d4ed8 !important; border-right: none !important; }
+    .sidebar-user { display: none; }
+    .home-right { display: none; }
+    .home-center { padding: 12px; }
+    .blocks-grid { grid-template-columns: 1fr !important; gap: 12px; }
+    .home-greeting h2 { font-size: 18px; }
+
+    /* Inner pages body */
+    .body { flex-direction: column; }
+    .app-sidebar { width: 100% !important; min-width: unset !important; height: auto; flex-direction: column; }
+    .app-sidebar .sidebar-nav { display: flex !important; flex-direction: row !important; overflow-x: auto; padding: 4px; }
+    .app-sidebar .nav-item { flex-direction: column !important; padding: 8px 10px !important; font-size: 10px !important; gap: 3px !important; border-right: none !important; min-width: 55px; align-items: center; }
+    .app-sidebar .sidebar-logo { display: none; }
+    .app-sidebar .sidebar-user { display: none; }
+    .app-sidebar.collapsed { width: 100% !important; min-width: unset !important; }
+
+    /* Chapters sidebar */
+    .sidebar { width: 100% !important; height: 120px; overflow-x: auto; flex-direction: row !important; border-left: none !important; border-bottom: 1px solid #e2e8f0; }
+    .sidebar-title { padding: 8px 12px; white-space: nowrap; }
+    #chapters-list { display: flex; flex-direction: row; overflow-x: auto; }
+    .ch-btn { min-width: 120px; border-bottom: none; border-left: 3px solid transparent; }
+    .ch-btn.active { border-left-color: #60a5fa; }
+
+    /* Main content */
+    .main { width: 100%; }
+    .sticky-bar { top: 0; }
+    .questions-list { padding: 10px; }
+
+    /* Question cards */
+    .card { margin-bottom: 14px; }
+    .card-inner { flex-direction: column !important; }
+    .q-col { padding: 14px !important; }
+    .v-col { width: 100% !important; border-left: none !important; border-top: 1px solid #a7f3d0; }
+
+    /* Options 1 column on mobile */
+    .option { padding: 10px 12px; }
+
+    /* Action buttons smaller */
+    .abtn { padding: 5px 8px !important; font-size: 11px !important; }
+
+    /* Modals full screen */
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal-box { border-radius: 20px 20px 0 0 !important; max-width: 100% !important; width: 100% !important; }
+
+    /* Subject cards */
+    .subject-card { padding: 14px !important; }
+    .sc-icon-wrap { width: 44px !important; height: 44px !important; font-size: 24px !important; }
+    .sc-name { font-size: 15px !important; }
+
+    /* Picker screens */
+    .picker-screen { padding: 16px !important; }
+    .picker-title { font-size: 16px !important; }
+    .section-cards { grid-template-columns: 1fr 1fr !important; }
+
+    /* Right blocks in picker */
+    .section-card { padding: 14px !important; }
+
+    /* Hide menu toggle label */
+    .menu-toggle { padding: 8px; }
+
+    /* Progress bar sticky */
+    .sticky-bar { padding: 8px 12px; }
+    .year-filters { gap: 4px; }
+    .yr-btn { padding: 2px 8px; font-size: 11px; }
+
+    /* Font sizes */
+    html { font-size: 16px; }
+  }
+
+  /* Small mobile — up to 480px */
+  @media (max-width: 480px) {
+    .blocks-grid { grid-template-columns: 1fr !important; }
+    .section-cards { grid-template-columns: 1fr !important; }
+    .header-top { padding: 6px 10px !important; }
+    .header-logo img { height: 30px !important; }
+    .header-name h2 { font-size: 14px !important; }
+    .nav-item svg { width: 16px; height: 16px; }
+    .hbtn { padding: 5px 8px !important; font-size: 11px !important; }
+    html { font-size: 15px; }
+  }
+
 </style>
 </head>
 <body>
