@@ -9,7 +9,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl">
-      <body className="bg-slate-50 text-slate-900 font-sans" style={{ margin: 0, padding: 0 }}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
+          crossOrigin="anonymous"
+        />
+      </head>
+      <body style={{ margin: 0, padding: 0, background: '#f8fafc', fontFamily: "'Segoe UI', Tahoma, Arial, sans-serif" }}>
         {children}
       </body>
     </html>
