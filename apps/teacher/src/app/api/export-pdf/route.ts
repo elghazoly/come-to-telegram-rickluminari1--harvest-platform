@@ -150,9 +150,9 @@ async function buildHTML(body: {
   body { counter-reset: page; font-family: 'Cairo', Arial, sans-serif; direction: rtl; background: #f1f5f9; color: #1e293b; font-size: ${fontSize}; margin: 0; padding: 40px 0; }
   .page-wrap { max-width: 680px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
   @media print { body { background: white; padding: 0; } .page-wrap { max-width: 100%; box-shadow: none; border-radius: 0; } }
-  .cover-page { position:relative; width:100%; min-height:100vh; page-break-after:always; display:flex; align-items:stretch; }
+  .cover-page { position:relative; width:100%; height:100vh; page-break-after:always; break-after:page; display:flex; align-items:stretch; overflow:hidden; }
   .cover-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
-  .cover-overlay { position:relative; z-index:1; width:100%; min-height:100vh; background:linear-gradient(160deg,rgba(10,45,110,.92) 0%,rgba(26,79,168,.85) 60%,rgba(10,45,110,.95) 100%); display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+  .cover-overlay { position:relative; z-index:1; width:100%; height:100%; background:linear-gradient(160deg,rgba(10,45,110,.92) 0%,rgba(26,79,168,.85) 60%,rgba(10,45,110,.95) 100%); display:flex; align-items:center; justify-content:center; padding:40px 20px; }
   .cover-inner { text-align:center; color:white; width:100%; max-width:560px; }
   .cover-logo { width:90px; height:90px; object-fit:contain; border-radius:16px; background:white; padding:8px; margin-bottom:20px; box-shadow:0 4px 20px rgba(0,0,0,.3); }
   .cover-logo-placeholder { font-size:72px; margin-bottom:20px; line-height:1; }
@@ -191,8 +191,11 @@ async function buildHTML(body: {
   .no-print { padding: 10px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 10px; align-items: center; }
   @media print {
     .no-print { display: none !important; }
+    body { background: white !important; padding: 0 !important; }
+    .page-wrap { max-width: 100% !important; box-shadow: none !important; border-radius: 0 !important; }
     .page-header, .chapter-header, .q-num, .option.correct { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .cover-page { height: 100vh !important; }
+    .cover-page { height: 100vh !important; page-break-after: always !important; break-after: page !important; }
+    .cover-overlay, .cover-bg { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
