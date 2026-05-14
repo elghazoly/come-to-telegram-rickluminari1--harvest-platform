@@ -22,7 +22,7 @@ export default function UsersPage() {
   const router = useRouter()
   const [users,    setUsers]    = useState<ProfileWithEmail[]>([])
   const [loading,  setLoading]  = useState(true)
-  const [filter,   setFilter]   = useState<'all'|'admin'|'teacher'|'student'>('all')
+  const [filter,   setFilter]   = useState<'all'|'admin'|'teacher'|'student'>('teacher')
   const [search,   setSearch]   = useState('')
   const [showForm, setShowForm] = useState(false)
   const [saving,   setSaving]   = useState(false)
