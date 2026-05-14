@@ -33,7 +33,7 @@ async function buildHTML(body: {
   const chapterIds = chapters.map((c: any) => c.id)
   const { data: questions } = await supabase
     .from('questions')
-    .select('id, text, num, chapter_id, options(id, text, is_correct)')
+    .select('id, text, num, chapter_id, image_url, options(id, text, is_correct)')
     .in('chapter_id', chapterIds)
     .order('order_num')
 
@@ -180,6 +180,8 @@ async function buildHTML(body: {
   .q-num { background: #1d4ed8; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; flex-shrink: 0; margin-top: 2px; }
   .q-body { flex: 1; }
   .q-text { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 8px; line-height: 1.6; }
+  .q-img { margin: 8px 0 10px; text-align: center; }
+  .q-img img { max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block; }
   .options { display: grid; grid-template-columns: ${gridCols}; gap: 5px; }
   .option { display: flex; align-items: center; gap: 7px; padding: 5px 8px; border: 1px solid #e2e8f0; border-radius: 7px; }
   .option.correct { border-color: #16a34a; background: #f0fdf4; }
@@ -194,6 +196,7 @@ async function buildHTML(body: {
     body { background: white !important; padding: 0 !important; }
     .page-wrap { max-width: 100% !important; box-shadow: none !important; border-radius: 0 !important; }
     .page-header, .chapter-header, .q-num, .option.correct { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .q-img img { max-width: 100% !important; page-break-inside: avoid; }
     .cover-page { height: 100vh !important; page-break-after: always !important; break-after: page !important; }
     .cover-overlay, .cover-bg { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
