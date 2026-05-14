@@ -710,11 +710,42 @@
           <div class="sc-desc">أهم الأسئلة المتوقعة للاختبار</div>
           <span class="sc-badge soon">قريباً</span>
         </div>
-        <div class="section-card gray" onclick="">
+        <div class="section-card gray" onclick="showFilesSection()">
           <div class="sc-icon gray">📥</div>
           <div class="sc-name">ملفات المادة</div>
-          <div class="sc-desc">تحميل الملخصات والمراجع</div>
-          <span class="sc-badge soon">قريباً</span>
+          <div class="sc-desc">تحميل الأسئلة والنماذج المحلولة</div>
+          <span class="sc-badge new">متاح</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Files section -->
+    <div class="picker-screen" id="files-section">
+      <button class="back-btn" onclick="showSectionPicker()">← اختيار القسم</button>
+      <div class="picker-title" id="files-section-title">ملفات المادة</div>
+      <div class="picker-sub">تحميل وطباعة الأسئلة والنماذج المحلولة</div>
+      <div style="display:grid;gap:14px;max-width:600px">
+        <div style="background:white;border-radius:16px;border:1.5px solid #bfdbfe;padding:22px;display:flex;align-items:center;gap:16px">
+          <div style="width:52px;height:52px;border-radius:14px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">📄</div>
+          <div style="flex:1">
+            <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:4px">نموذج الأسئلة</div>
+            <div style="font-size:12px;color:#64748b">جميع أسئلة المادة بدون إجابات — للممارسة والمراجعة</div>
+          </div>
+          <button id="btn-download-unsolved" onclick="downloadPDF('unsolved')"
+                  style="background:#1d4ed8;color:white;border:none;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
+            📥 تحميل
+          </button>
+        </div>
+        <div style="background:white;border-radius:16px;border:1.5px solid #bbf7d0;padding:22px;display:flex;align-items:center;gap:16px">
+          <div style="width:52px;height:52px;border-radius:14px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">✅</div>
+          <div style="flex:1">
+            <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:4px">النموذج المحلول</div>
+            <div style="font-size:12px;color:#64748b">الأسئلة مع الإجابات الصحيحة محددة — للمراجعة النهائية</div>
+          </div>
+          <button id="btn-download-solved" onclick="downloadPDF('solved')"
+                  style="background:#15803d;color:white;border:none;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
+            📥 تحميل
+          </button>
         </div>
       </div>
     </div>
@@ -1503,6 +1534,22 @@ function contactAction(type) {
 }
 
 function closeContact() { document.getElementById('contact-modal').classList.add('hidden') }
+
+// ── Files section ────────────────────────────────────────────────────────────
+function showFilesSection() {
+  document.getElementById('section-picker').classList.remove('active')
+  document.getElementById('subject-picker').classList.remove('active')
+  document.getElementById('files-section').classList.add('active')
+  hideSidebars()
+  const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+  if (sub) document.getElementById('files-section-title').textContent = 'ملفات ' + sub.name
+}
+
+function downloadPDF(mode) {
+  const TEACHER_URL = 'http://161.35.196.144:3001'
+  const url = TEACHER_URL + '/api/export-pdf?subject_id=' + STATE.activeSubject + '&mode=' + mode
+  window.open(url, '_blank')
+}
 
 // ── Sidebar toggle ───────────────────────────────────────────────────────────
 let sidebarOpen = true
