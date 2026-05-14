@@ -115,8 +115,9 @@ async function buildHTML(body: {
       border-top: 1px solid #e2e8f0;
     }
   }
-  body { counter-reset: page; }
-  body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; background: white; color: #1e293b; font-size: ${fontSize}; }
+  body { counter-reset: page; font-family: 'Cairo', Arial, sans-serif; direction: rtl; background: #f1f5f9; color: #1e293b; font-size: ${fontSize}; margin: 0; padding: 40px 0; }
+  .page-wrap { max-width: 680px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+  @media print { body { background: white; padding: 0; } .page-wrap { max-width: 100%; box-shadow: none; border-radius: 0; } }
   .cover-page { width:100%; height:100vh; page-break-after:always; padding:0; }
   .cover-page img { width:100%; height:100%; object-fit:cover; display:block; }
   .page-header { background: linear-gradient(135deg, #0a2d6e, #1a4fa8); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
@@ -149,6 +150,7 @@ async function buildHTML(body: {
 </head>
 <body>
 ${coverHTML}
+<div class="page-wrap">
 <div class="page-header">
   <div>
     <h1>${(subject as any).icon || '📚'} ${(subject as any).name || 'مادة'}</h1>
@@ -161,6 +163,7 @@ ${coverHTML}
   <span style="font-size:12px;color:#64748b">اختر "حفظ كـ PDF" من قائمة الطباعة</span>
 </div>
 ${chaptersHTML}
+</div>
 </body>
 </html>`
 
