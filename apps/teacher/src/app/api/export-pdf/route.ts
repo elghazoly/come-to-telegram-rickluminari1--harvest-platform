@@ -15,8 +15,8 @@ export async function GET(req: Request) {
   if (!subjectId) return NextResponse.json({ error: 'missing subject_id' }, { status: 400 })
 
   // Load subject
-  const { data: subject, error: subErr } = await supabase.from('subjects').select('name, icon').eq('id', subjectId).single()
-  if (subErr) return NextResponse.json({ error: 'subject error: ' + subErr.message }, { status: 500 })
+  const { data: subjectRows } = await supabase.from('subjects').select('name, icon').eq('id', subjectId).limit(1)
+  const subject = subjectRows?.[0] || { name: 'مادة', icon: '📚' }
 
   // Load chapters (all or single)
   let chapQuery = supabase.from('chapters').select('id, name, chapter_type').eq('subject_id', subjectId).order('order_num')
