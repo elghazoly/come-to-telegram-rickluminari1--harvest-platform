@@ -33,11 +33,14 @@ export default function TeacherDashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: prof } = await supabase
-        .from('profiles').select('id, full_name, role').eq('id', user.id).single()
+      // Load profile + subjects in parallel
+      const [{ data: prof }, subjectsResult] = await Promise.all([
+        supabase.from('profiles').select('id, full_name, role').eq('id', user.id).single(),
+        supabase.auth.getUser(),
+      ])
       setProfile(prof)
 
-      // Get subjects
+      // Get subject IDs
       let subjectIds: string[] = []
       if (prof?.role === 'admin') {
         const { data } = await supabase.from('subjects').select('id').order('order_num')
@@ -50,41 +53,11 @@ export default function TeacherDashboard() {
 
       if (!subjectIds.length) { setLoading(false); return }
 
-      // Load full data
-      const built: SubjectFull[] = []
-      for (const sid of subjectIds) {
-        const { data: sub } = await supabase.from('subjects').select('*').eq('id', sid).single()
-        if (!sub) continue
+      // Load only subject names/icons for dashboard display — no chapters/questions
+      const { data: subs } = await supabase
+        .from('subjects').select('id, name, icon').in('id', subjectIds).order('order_num')
 
-        const { data: chs } = await supabase
-          .from('chapters').select('*').eq('subject_id', sid).order('order_num')
-
-        const chapFull: ChapterFull[] = []
-        for (const ch of chs || []) {
-          const { data: qs } = await supabase
-            .from('questions')
-            .select('*, options(*), explanations(*)')
-            .eq('chapter_id', ch.id)
-            .order('order_num')
-          chapFull.push({ ...ch, questions: (qs || []) as QuestionFull[] })
-        }
-        built.push({ ...sub, chapters: chapFull })
-      }
-
-      setSubjects(built)
-
-      // Set defaults
-      if (built.length > 0) {
-        setActiveSubject(built[0].id)
-        if (built[0].chapters.length > 0) setActiveChapter(built[0].chapters[0].id)
-      }
-
-      // Pre-fill notes
-      const notesMap: Record<string, string> = {}
-      built.forEach(s => s.chapters.forEach(c => c.questions.forEach(q => {
-        notesMap[q.id] = q.explanations?.[0]?.text_note || ''
-      })))
-      setNotes(notesMap)
+      setSubjects((subs || []).map((s: any) => ({ ...s, chapters: [] })) as SubjectFull[])
       setLoading(false)
     }
     load()

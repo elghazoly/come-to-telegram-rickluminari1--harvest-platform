@@ -39,12 +39,16 @@ export default function SubjectsPage() {
         subjectIds = ts?.map((t: any) => t.subject_id) || []
       }
 
-      const built: Subject[] = []
-      for (const sid of subjectIds) {
-        const { data: sub } = await supabase.from('subjects').select('*').eq('id', sid).single()
-        const { data: chs } = await supabase.from('chapters').select('id, name, chapter_type').eq('subject_id', sid).order('order_num')
-        if (sub) built.push({ ...sub, chapters: chs || [] })
-      }
+      // Parallel: fetch all subjects + all chapters in 2 queries
+      const [{ data: subsData }, { data: chsData }] = await Promise.all([
+        supabase.from('subjects').select('id, name, icon').in('id', subjectIds).order('order_num'),
+        supabase.from('chapters').select('id, name, chapter_type, subject_id').in('subject_id', subjectIds).order('order_num'),
+      ])
+
+      const built: Subject[] = (subsData || []).map((sub: any) => ({
+        ...sub,
+        chapters: (chsData || []).filter((c: any) => c.subject_id === sub.id),
+      }))
       setSubjects(built)
       setLoading(false)
     }
