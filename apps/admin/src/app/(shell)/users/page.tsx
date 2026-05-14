@@ -107,6 +107,14 @@ export default function UsersPage() {
       {/* Header */}
 
       <main className="max-w-5xl mx-auto px-6 py-8">
+        {/* Top bar */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
+          <h1 style={{ fontSize:20, fontWeight:800, color:'#1e293b', margin:0 }}>👥 المستخدمون</h1>
+          <button onClick={() => setShowForm(true)}
+                  style={{ background:'linear-gradient(90deg,#0a2d6e,#1a4fa8)', color:'white', border:'none', padding:'9px 18px', borderRadius:12, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+            ➕ مستخدم جديد
+          </button>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4 mb-6">
