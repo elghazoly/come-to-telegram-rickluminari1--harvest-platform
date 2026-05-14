@@ -26,7 +26,7 @@ export default function SubjectsPage() {
   async function load() {
     const [{ data: subs }, { data: tchs }, { data: ts }] = await Promise.all([
       supabase.from('subjects').select('*').order('order_num'),
-      supabase.from('profiles').select('id, full_name, phone').eq('role', 'teacher').order('full_name'),
+      supabase.from('profiles').select('*').eq('role', 'teacher').order('full_name'),
       supabase.from('teacher_subjects').select('teacher_id, subject_id'),
     ])
     setSubjects(subs || [])
