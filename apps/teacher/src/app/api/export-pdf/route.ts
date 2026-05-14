@@ -91,10 +91,15 @@ async function buildHTML(body: {
           + '</div>'
       }).join('')
 
+      const imgHTML = (q.image_url && q.image_url !== '__NEEDS_IMAGE__')
+        ? '<div class="q-img"><img src="' + q.image_url + '" alt="" /></div>'
+        : ''
+
       questionsHTML += '<div class="question">'
         + '<div class="q-num">س' + (q.num || '') + '</div>'
         + '<div class="q-body">'
         + '<div class="q-text">' + (q.text || '') + '</div>'
+        + imgHTML
         + '<div class="options">' + optionsHTML + '</div>'
         + (isSolved && correctOpt ? '<div class="answer-key">الإجابة: ' + labels[opts.indexOf(correctOpt)] + ' — ' + correctOpt.text + '</div>' : '')
         + '</div></div>'
