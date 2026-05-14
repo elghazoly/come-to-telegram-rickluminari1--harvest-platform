@@ -16,6 +16,10 @@ export default function SubjectsPage() {
   const [subjects,  setSubjects]  = useState<Subject[]>([])
   const [expanded,  setExpanded]  = useState<string | null>(null)
   const [loading,   setLoading]   = useState(true)
+  const [exportModal, setExportModal] = useState<{ subjectId: string; chapterId?: string; mode: 'solved'|'unsolved' } | null>(null)
+  const [coverImage,  setCoverImage]  = useState<string>('')
+  const [orientation, setOrientation] = useState<'portrait'|'landscape'>('portrait')
+  const [exporting,   setExporting]   = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -45,8 +49,32 @@ export default function SubjectsPage() {
     load()
   }, [])
 
-  function exportPDF(subjectId: string, mode: 'solved' | 'unsolved') {
-    window.open(`/api/export-pdf?subject_id=${subjectId}&mode=${mode}`, '_blank')
+  function openExportModal(subjectId: string, mode: 'solved'|'unsolved', chapterId?: string) {
+    setExportModal({ subjectId, chapterId, mode })
+    setCoverImage('')
+    setOrientation('portrait')
+  }
+
+  function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => setCoverImage(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  function doExport() {
+    if (!exportModal) return
+    setExporting(true)
+    const params = new URLSearchParams({
+      subject_id:  exportModal.subjectId,
+      mode:        exportModal.mode,
+      orientation,
+      ...(exportModal.chapterId ? { chapter_id: exportModal.chapterId } : {}),
+      ...(coverImage ? { cover: encodeURIComponent(coverImage) } : {}),
+    })
+    window.open(`/api/export-pdf?${params.toString()}`, '_blank')
+    setTimeout(() => { setExporting(false); setExportModal(null) }, 1000)
   }
 
   const colors = [
@@ -100,11 +128,11 @@ export default function SubjectsPage() {
 
                   {/* Export buttons */}
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <button onClick={() => exportPDF(sub.id, 'unsolved')}
+                    <button onClick={() => openExportModal(sub.id, 'unsolved')}
                             style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '7px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                       📄 تصدير أسئلة
                     </button>
-                    <button onClick={() => exportPDF(sub.id, 'solved')}
+                    <button onClick={() => openExportModal(sub.id, 'solved')}
                             style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '7px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                       ✅ تصدير محلول
                     </button>
@@ -124,11 +152,11 @@ export default function SubjectsPage() {
                           {ch.chapter_type === 'exam' ? 'اختبار' : 'شرح'}
                         </span>
                         <span style={{ flex: 1, fontSize: 13, color: '#374151', fontWeight: 500 }}>{ch.name}</span>
-                        <button onClick={() => window.open(`/api/export-pdf?subject_id=${sub.id}&chapter_id=${ch.id}&mode=unsolved`, '_blank')}
+                        <button onClick={() => openExportModal(sub.id, 'unsolved', ch.id)}
                                 style={{ background: 'white', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                           📄 أسئلة
                         </button>
-                        <button onClick={() => window.open(`/api/export-pdf?subject_id=${sub.id}&chapter_id=${ch.id}&mode=solved`, '_blank')}
+                        <button onClick={() => openExportModal(sub.id, 'solved', ch.id)}
                                 style={{ background: 'white', color: '#15803d', border: '1px solid #bbf7d0', padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                           ✅ محلول
                         </button>
@@ -139,6 +167,67 @@ export default function SubjectsPage() {
               </div>
             )
           })}
+        </div>
+      )}
+      {/* Export Modal */}
+      {exportModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }}>
+          <div style={{ background:'white', borderRadius:20, padding:28, width:'100%', maxWidth:480, boxShadow:'0 20px 60px rgba(0,0,0,.2)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+              <h3 style={{ fontSize:18, fontWeight:800, color:'#1e293b' }}>
+                {exportModal.mode === 'solved' ? '✅ تصدير النموذج المحلول' : '📄 تصدير نموذج الأسئلة'}
+              </h3>
+              <button onClick={() => setExportModal(null)} style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', color:'#94a3b8' }}>×</button>
+            </div>
+
+            {/* Cover image */}
+            <div style={{ marginBottom:20 }}>
+              <label style={{ fontSize:13, fontWeight:700, color:'#374151', display:'block', marginBottom:8 }}>صورة الغلاف (اختياري)</label>
+              {coverImage ? (
+                <div style={{ position:'relative', marginBottom:8 }}>
+                  <img src={coverImage} alt="غلاف" style={{ width:'100%', height:140, objectFit:'cover', borderRadius:10, border:'1px solid #e2e8f0' }} />
+                  <button onClick={() => setCoverImage('')}
+                          style={{ position:'absolute', top:8, left:8, background:'rgba(0,0,0,.6)', color:'white', border:'none', borderRadius:'50%', width:28, height:28, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                </div>
+              ) : (
+                <label style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, padding:20, border:'2px dashed #e2e8f0', borderRadius:10, cursor:'pointer', background:'#f8fafc', color:'#94a3b8', fontSize:13 }}>
+                  <span style={{ fontSize:28 }}>🖼️</span>
+                  <span>اضغط لرفع صورة الغلاف</span>
+                  <input type="file" accept="image/*" onChange={handleCoverUpload} style={{ display:'none' }} />
+                </label>
+              )}
+            </div>
+
+            {/* Orientation */}
+            <div style={{ marginBottom:24 }}>
+              <label style={{ fontSize:13, fontWeight:700, color:'#374151', display:'block', marginBottom:10 }}>اتجاه الصفحة</label>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                {[
+                  { val:'portrait',  label:'بورتريه', icon:'📄', desc:'طولي — A4 عمودي' },
+                  { val:'landscape', label:'لاندسكيب', icon:'🗒️', desc:'أفقي — A4 عرضي' },
+                ].map(opt => (
+                  <button key={opt.val} onClick={() => setOrientation(opt.val as any)}
+                          style={{ padding:'14px 12px', borderRadius:12, border:`2px solid ${orientation===opt.val ? '#1d4ed8' : '#e2e8f0'}`, background: orientation===opt.val ? '#eff6ff' : 'white', cursor:'pointer', textAlign:'center' }}>
+                    <div style={{ fontSize:24, marginBottom:4 }}>{opt.icon}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color: orientation===opt.val ? '#1d4ed8' : '#1e293b' }}>{opt.label}</div>
+                    <div style={{ fontSize:11, color:'#94a3b8', marginTop:2 }}>{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={doExport} disabled={exporting}
+                      style={{ flex:1, background:'#1d4ed8', color:'white', border:'none', padding:'12px 20px', borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+                {exporting ? '⏳ جاري الفتح...' : '🚀 تصدير PDF'}
+              </button>
+              <button onClick={() => setExportModal(null)}
+                      style={{ background:'#f1f5f9', color:'#475569', border:'none', padding:'12px 20px', borderRadius:12, fontSize:14, fontWeight:600, cursor:'pointer' }}>
+                إلغاء
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
