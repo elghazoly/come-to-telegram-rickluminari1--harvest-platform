@@ -1,28 +1,30 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
 export async function GET(req: Request) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
   const { searchParams } = new URL(req.url)
   const subjectId = searchParams.get('subject_id')
-  const chapterId = searchParams.get('chapter_id') // optional — filter to one chapter
-  const mode      = searchParams.get('mode') || 'unsolved' // 'solved' | 'unsolved'
+  const chapterId = searchParams.get('chapter_id')
+  const mode      = searchParams.get('mode') || 'unsolved'
 
   if (!subjectId) return NextResponse.json({ error: 'missing subject_id' }, { status: 400 })
 
   // Load subject
-  const { data: subject } = await supabase.from('subjects').select('name, icon').eq('id', subjectId).single()
+  const { data: subject, error: subErr } = await supabase.from('subjects').select('name, icon').eq('id', subjectId).single()
+  if (subErr) return NextResponse.json({ error: 'subject error: ' + subErr.message }, { status: 500 })
 
   // Load chapters (all or single)
   let chapQuery = supabase.from('chapters').select('id, name, chapter_type').eq('subject_id', subjectId).order('order_num')
-  if (chapterId) chapQuery = chapQuery.eq('id', chapterId) as any
-  const { data: chapters } = await chapQuery
+  if (chapterId) chapQuery = (chapQuery as any).eq('id', chapterId)
+  const { data: chapters, error: chapErr } = await chapQuery
 
-  if (!chapters?.length) return NextResponse.json({ error: 'no chapters' }, { status: 404 })
+  if (chapErr) return NextResponse.json({ error: 'chapters error: ' + chapErr.message }, { status: 500 })
+  if (!chapters?.length) return NextResponse.json({ error: 'no chapters', subject_id: subjectId, subject }, { status: 404 })
 
   // Load all questions + options for all chapters at once
   const chapterIds = chapters.map((c: any) => c.id)
