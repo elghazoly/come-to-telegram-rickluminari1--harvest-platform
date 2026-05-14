@@ -1,6 +1,21 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+
+// Fetch remote image and return base64 data URI (for print compatibility)
+async function toBase64DataURI(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return url
+    const buf  = await res.arrayBuffer()
+    const mime = res.headers.get('content-type') || 'image/jpeg'
+    const b64  = Buffer.from(buf).toString('base64')
+    return `data:${mime};base64,${b64}`
+  } catch {
+    return url
+  }
+}
+
 async function buildHTML(body: {
   subject_id: string
   chapter_id?: string
@@ -37,8 +52,18 @@ async function buildHTML(body: {
     .in('chapter_id', chapterIds)
     .order('order_num')
 
+  // Convert question images to base64 so they render in print/blob HTML
+  const questionsWithImages = await Promise.all(
+    (questions || []).map(async (q: any) => {
+      if (q.image_url && q.image_url.startsWith('http') && !q.image_url.startsWith('data:')) {
+        return { ...q, image_url: await toBase64DataURI(q.image_url) }
+      }
+      return q
+    })
+  )
+
   const qByChapter: Record<string, any[]> = {}
-  for (const q of questions || []) {
+  for (const q of questionsWithImages) {
     if (!qByChapter[q.chapter_id]) qByChapter[q.chapter_id] = []
     qByChapter[q.chapter_id].push(q)
   }
@@ -208,7 +233,7 @@ ${coverHTML}
 <div class="page-header">
   <div>
     <h1>${(subject as any).icon || '📚'} ${(subject as any).name || 'مادة'}</h1>
-    <div class="meta">جميع الفصول • ${questions?.length || 0} سؤال</div>
+    <div class="meta">جميع الفصول • ${questionsWithImages?.length || 0} سؤال</div>
   </div>
   <div class="mode-badge ${isSolved ? 'solved' : ''}">${isSolved ? '✓ نموذج محلول' : 'نموذج أسئلة'}</div>
 </div>
