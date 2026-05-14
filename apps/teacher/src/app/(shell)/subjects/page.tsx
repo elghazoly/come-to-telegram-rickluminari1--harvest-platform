@@ -92,6 +92,12 @@ export default function SubjectsPage() {
                     </div>
                   </div>
 
+                  {/* Manage chapters button */}
+                  <button onClick={() => router.push(`/subjects/${sub.id}/chapters`)}
+                          style={{ background: '#1d4ed8', color: 'white', border: 'none', padding: '7px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                    ✏️ إدارة الفصول
+                  </button>
+
                   {/* Export buttons */}
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <button onClick={() => exportPDF(sub.id, 'unsolved')}
