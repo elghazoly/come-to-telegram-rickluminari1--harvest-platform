@@ -1,7 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-export async function GET(req: Request) {
+async function buildHTML(body: {
+  subject_id: string
+  chapter_id?: string
+  mode?: string
+  orientation?: string
+  cover?: string
+}) {
   const serviceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,14 +15,9 @@ export async function GET(req: Request) {
     { auth: { persistSession: false } }
   )
 
-  const { searchParams } = new URL(req.url)
-  const subjectId   = searchParams.get('subject_id')
-  const chapterId   = searchParams.get('chapter_id')
-  const mode        = searchParams.get('mode') || 'unsolved'
-  const orientation = searchParams.get('orientation') || 'portrait'
-  const coverB64    = searchParams.get('cover') ? decodeURIComponent(searchParams.get('cover')!) : null
+  const { subject_id: subjectId, chapter_id: chapterId, mode = 'unsolved', orientation = 'portrait', cover } = body
 
-  if (!subjectId) return NextResponse.json({ error: 'missing subject_id' }, { status: 400 })
+  if (!subjectId) return null
 
   const { data: subjectRows } = await supabase.from('subjects').select('name, icon').eq('id', subjectId).limit(1)
   const subject = subjectRows?.[0] || { name: 'مادة', icon: '📚' }
@@ -25,8 +26,7 @@ export async function GET(req: Request) {
   if (chapterId) chapQuery = (chapQuery as any).eq('id', chapterId)
   const { data: chapters, error: chapErr } = await chapQuery
 
-  if (chapErr) return NextResponse.json({ error: 'chapters error: ' + chapErr.message }, { status: 500 })
-  if (!chapters?.length) return NextResponse.json({ error: 'no chapters', subject_id: subjectId, subject }, { status: 404 })
+  if (chapErr || !chapters?.length) return { error: 'no chapters', subject }
 
   const chapterIds = chapters.map((c: any) => c.id)
   const { data: questions } = await supabase
@@ -41,9 +41,9 @@ export async function GET(req: Request) {
     qByChapter[q.chapter_id].push(q)
   }
 
-  const isSolved   = mode === 'solved'
+  const isSolved    = mode === 'solved'
   const isLandscape = orientation === 'landscape'
-  const labels     = ['أ', 'ب', 'ج', 'د', 'هـ']
+  const labels      = ['أ', 'ب', 'ج', 'د', 'هـ']
 
   let chaptersHTML = ''
   for (const ch of chapters) {
@@ -79,8 +79,8 @@ export async function GET(req: Request) {
       + '</div>'
   }
 
-  const coverHTML = coverB64
-    ? '<div class="cover-page"><img src="' + coverB64 + '" /></div>'
+  const coverHTML = cover
+    ? '<div class="cover-page"><img src="' + cover + '" /></div>'
     : ''
 
   const gridCols = isLandscape ? '1fr 1fr' : '1fr 1fr'
@@ -144,7 +144,31 @@ ${chaptersHTML}
 </body>
 </html>`
 
-  return new NextResponse(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8' }
+  return html
+}
+
+// GET (legacy - no cover)
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const result = await buildHTML({
+    subject_id:  searchParams.get('subject_id') || '',
+    chapter_id:  searchParams.get('chapter_id') || undefined,
+    mode:        searchParams.get('mode') || 'unsolved',
+    orientation: searchParams.get('orientation') || 'portrait',
   })
+  if (!result) return NextResponse.json({ error: 'missing subject_id' }, { status: 400 })
+  if (typeof result === 'object' && 'error' in result)
+    return NextResponse.json(result, { status: 404 })
+  return new NextResponse(result as string, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+}
+
+// POST (supports cover image)
+export async function POST(req: NextRequest) {
+  const body = await req.json()
+  if (!body.subject_id) return NextResponse.json({ error: 'missing subject_id' }, { status: 400 })
+  const result = await buildHTML(body)
+  if (!result) return NextResponse.json({ error: 'missing subject_id' }, { status: 400 })
+  if (typeof result === 'object' && 'error' in result)
+    return NextResponse.json(result, { status: 404 })
+  return new NextResponse(result as string, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
 }

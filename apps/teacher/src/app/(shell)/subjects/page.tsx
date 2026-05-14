@@ -63,18 +63,32 @@ export default function SubjectsPage() {
     reader.readAsDataURL(file)
   }
 
-  function doExport() {
+  async function doExport() {
     if (!exportModal) return
     setExporting(true)
-    const params = new URLSearchParams({
-      subject_id:  exportModal.subjectId,
-      mode:        exportModal.mode,
-      orientation,
-      ...(exportModal.chapterId ? { chapter_id: exportModal.chapterId } : {}),
-      ...(coverImage ? { cover: encodeURIComponent(coverImage) } : {}),
-    })
-    window.open(`/api/export-pdf?${params.toString()}`, '_blank')
-    setTimeout(() => { setExporting(false); setExportModal(null) }, 1000)
+    try {
+      const body: Record<string, string> = {
+        subject_id:  exportModal.subjectId,
+        mode:        exportModal.mode,
+        orientation,
+      }
+      if (exportModal.chapterId) body.chapter_id = exportModal.chapterId
+      if (coverImage) body.cover = coverImage
+
+      const res = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const html = await res.text()
+      const blob = new Blob([html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } finally {
+      setExporting(false)
+      setExportModal(null)
+    }
   }
 
   const colors = [
