@@ -18,8 +18,10 @@ export default function SubjectsPage() {
   const [loading,   setLoading]   = useState(true)
   const [exportModal, setExportModal] = useState<{ subjectId: string; chapterId?: string; mode: 'solved'|'unsolved' } | null>(null)
   const [coverImage,  setCoverImage]  = useState<string>('')
+  const [logoImage,   setLogoImage]   = useState<string>('')
   const [orientation, setOrientation] = useState<'portrait'|'landscape'>('portrait')
   const [exporting,   setExporting]   = useState(false)
+  const [teacherName, setTeacherName] = useState<string>('')
 
   useEffect(() => {
     async function load() {
@@ -49,10 +51,27 @@ export default function SubjectsPage() {
     load()
   }, [])
 
-  function openExportModal(subjectId: string, mode: 'solved'|'unsolved', chapterId?: string) {
+  async function openExportModal(subjectId: string, mode: 'solved'|'unsolved', chapterId?: string) {
     setExportModal({ subjectId, chapterId, mode })
     setCoverImage('')
+    setLogoImage('')
     setOrientation('portrait')
+    // fetch teacher name
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: prof } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+        if (prof?.full_name) setTeacherName(prof.full_name)
+      }
+    } catch {}
+  }
+
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => setLogoImage(ev.target?.result as string)
+    reader.readAsDataURL(file)
   }
 
   function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -74,6 +93,8 @@ export default function SubjectsPage() {
       }
       if (exportModal.chapterId) body.chapter_id = exportModal.chapterId
       if (coverImage) body.cover = coverImage
+      if (logoImage)  body.logo = logoImage
+      if (teacherName) body.teacher_name = teacherName
 
       const res = await fetch('/api/export-pdf', {
         method: 'POST',
@@ -192,6 +213,35 @@ export default function SubjectsPage() {
                 {exportModal.mode === 'solved' ? '✅ تصدير النموذج المحلول' : '📄 تصدير نموذج الأسئلة'}
               </h3>
               <button onClick={() => setExportModal(null)} style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', color:'#94a3b8' }}>×</button>
+            </div>
+
+            {/* Logo */}
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:13, fontWeight:700, color:'#374151', display:'block', marginBottom:8 }}>شعار اللوجو (اختياري)</label>
+              {logoImage ? (
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <img src={logoImage} alt="لوجو" style={{ width:56, height:56, objectFit:'contain', borderRadius:10, border:'1px solid #e2e8f0', background:'#f8fafc', padding:4 }} />
+                  <button onClick={() => setLogoImage('')} style={{ background:'#fee2e2', color:'#dc2626', border:'none', padding:'5px 12px', borderRadius:8, cursor:'pointer', fontSize:12, fontWeight:700 }}>حذف</button>
+                </div>
+              ) : (
+                <label style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', border:'2px dashed #e2e8f0', borderRadius:10, cursor:'pointer', background:'#f8fafc', color:'#94a3b8', fontSize:13 }}>
+                  <span style={{ fontSize:22 }}>🏷️</span>
+                  <span>اضغط لرفع اللوجو</span>
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display:'none' }} />
+                </label>
+              )}
+            </div>
+
+            {/* Teacher name */}
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:13, fontWeight:700, color:'#374151', display:'block', marginBottom:8 }}>اسم المعلم</label>
+              <input
+                type="text"
+                value={teacherName}
+                onChange={e => setTeacherName(e.target.value)}
+                placeholder="اسم المعلم..."
+                style={{ width:'100%', padding:'9px 12px', border:'1px solid #e2e8f0', borderRadius:10, fontSize:13, fontFamily:'inherit', direction:'rtl', outline:'none' }}
+              />
             </div>
 
             {/* Cover image */}

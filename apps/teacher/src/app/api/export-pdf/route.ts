@@ -7,6 +7,8 @@ async function buildHTML(body: {
   mode?: string
   orientation?: string
   cover?: string
+  logo?: string
+  teacher_name?: string
 }) {
   const serviceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   const supabase = createClient(
@@ -15,7 +17,7 @@ async function buildHTML(body: {
     { auth: { persistSession: false } }
   )
 
-  const { subject_id: subjectId, chapter_id: chapterId, mode = 'unsolved', orientation = 'portrait', cover } = body
+  const { subject_id: subjectId, chapter_id: chapterId, mode = 'unsolved', orientation = 'portrait', cover, logo, teacher_name } = body
 
   if (!subjectId) return null
 
@@ -79,9 +81,39 @@ async function buildHTML(body: {
       + '</div>'
   }
 
-  const coverHTML = cover
-    ? '<div class="cover-page"><img src="' + cover + '" /></div>'
-    : ''
+  // Build chapters agenda for cover page
+  const agendaRows = chapters.reduce((acc: string[], ch: any, i: number) => {
+    if (i % 2 === 0) {
+      const next = chapters[i + 1]
+      acc.push(
+        '<tr>' +
+          '<td>' + (i + 1) + '</td><td>' + ch.name + '</td>' +
+          (next ? '<td>' + (i + 2) + '</td><td>' + next.name + '</td>' : '<td></td><td></td>') +
+        '</tr>'
+      )
+    }
+    return acc
+  }, []).join('')
+
+  const coverHTML = '<div class="cover-page">' +
+    (cover ? '<img class="cover-bg" src="' + cover + '" />' : '') +
+    '<div class="cover-overlay">' +
+      '<div class="cover-inner">' +
+        (logo ? '<img class="cover-logo" src="' + logo + '" />' : '<div class="cover-logo-placeholder">🎓</div>') +
+        '<div class="cover-platform">منصة هارفست التعليمية</div>' +
+        '<div class="cover-subject">' + ((subject as any).icon || '📚') + ' ' + ((subject as any).name || 'مادة') + '</div>' +
+        (teacher_name ? '<div class="cover-teacher">إعداد الأستاذ / ' + teacher_name + '</div>' : '') +
+        '<div class="cover-mode-badge ' + (mode === 'solved' ? 'solved' : '') + '">' + (mode === 'solved' ? '✓ نموذج محلول' : 'نموذج أسئلة') + '</div>' +
+        '<div class="cover-agenda">' +
+          '<div class="agenda-title">📋 أجندة الفصول</div>' +
+          '<table class="agenda-table"><thead><tr><th>#</th><th>الفصل</th><th>#</th><th>الفصل</th></tr></thead><tbody>' +
+          agendaRows +
+          '</tbody></table>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>'
+
 
   const gridCols = isLandscape ? '1fr 1fr' : '1fr 1fr'
   const fontSize  = isLandscape ? '12px' : '13px'
@@ -118,8 +150,24 @@ async function buildHTML(body: {
   body { counter-reset: page; font-family: 'Cairo', Arial, sans-serif; direction: rtl; background: #f1f5f9; color: #1e293b; font-size: ${fontSize}; margin: 0; padding: 40px 0; }
   .page-wrap { max-width: 680px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
   @media print { body { background: white; padding: 0; } .page-wrap { max-width: 100%; box-shadow: none; border-radius: 0; } }
-  .cover-page { width:100%; height:100vh; page-break-after:always; padding:0; }
-  .cover-page img { width:100%; height:100%; object-fit:cover; display:block; }
+  .cover-page { position:relative; width:100%; min-height:100vh; page-break-after:always; display:flex; align-items:stretch; }
+  .cover-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .cover-overlay { position:relative; z-index:1; width:100%; min-height:100vh; background:linear-gradient(160deg,rgba(10,45,110,.92) 0%,rgba(26,79,168,.85) 60%,rgba(10,45,110,.95) 100%); display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+  .cover-inner { text-align:center; color:white; width:100%; max-width:560px; }
+  .cover-logo { width:90px; height:90px; object-fit:contain; border-radius:16px; background:white; padding:8px; margin-bottom:20px; box-shadow:0 4px 20px rgba(0,0,0,.3); }
+  .cover-logo-placeholder { font-size:72px; margin-bottom:20px; line-height:1; }
+  .cover-platform { font-size:14px; font-weight:600; opacity:.85; letter-spacing:1px; margin-bottom:10px; }
+  .cover-subject { font-size:32px; font-weight:900; margin-bottom:14px; line-height:1.3; }
+  .cover-teacher { font-size:16px; font-weight:700; background:rgba(255,255,255,.15); display:inline-block; padding:8px 24px; border-radius:30px; margin-bottom:20px; }
+  .cover-mode-badge { display:inline-block; padding:6px 20px; border-radius:20px; font-size:13px; font-weight:700; background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4); margin-bottom:28px; }
+  .cover-mode-badge.solved { background:#16a34a; border-color:#16a34a; }
+  .cover-agenda { background:rgba(255,255,255,.1); border-radius:12px; padding:16px 20px; text-align:right; }
+  .agenda-title { font-size:14px; font-weight:700; margin-bottom:10px; opacity:.9; }
+  .agenda-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .agenda-table th { background:rgba(255,255,255,.15); padding:7px 10px; font-weight:700; font-size:11px; }
+  .agenda-table td { padding:6px 10px; border-bottom:1px solid rgba(255,255,255,.1); }
+  .agenda-table tr:last-child td { border-bottom:none; }
+  .agenda-table td:first-child, .agenda-table td:nth-child(3) { width:28px; opacity:.7; font-size:11px; text-align:center; }
   .page-header { background: linear-gradient(135deg, #0a2d6e, #1a4fa8); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
   .page-header h1 { font-size: 20px; font-weight: 900; }
   .page-header .meta { font-size: 11px; opacity: .8; margin-top: 3px; }
