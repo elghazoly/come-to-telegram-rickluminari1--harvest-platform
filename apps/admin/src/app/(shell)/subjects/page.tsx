@@ -124,10 +124,10 @@ export default function SubjectsPage() {
       <main className="max-w-5xl mx-auto px-6 py-8">
 
         {/* Top bar */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="font-bold text-xl text-slate-800">📚 المواد الدراسية</h1>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
+          <h1 style={{ fontSize:20, fontWeight:800, color:'#1e293b', margin:0 }}>📚 المواد الدراسية</h1>
           <button onClick={openAdd}
-                  className="bg-blue-700 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded-xl text-sm transition-colors">
+                  style={{ background:'linear-gradient(90deg,#0a2d6e,#1a4fa8)', color:'white', border:'none', padding:'9px 18px', borderRadius:12, fontSize:13, fontWeight:700, cursor:'pointer' }}>
             ➕ مادة جديدة
           </button>
         </div>

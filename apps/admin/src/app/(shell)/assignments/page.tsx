@@ -4,191 +4,162 @@ import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import type { Subject, Profile } from '@harvest/db'
 
-interface Assignment {
-  teacher_id: string
-  subject_id: string
+interface Assignment { teacher_id: string; subject_id: string }
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+const S: Record<string, React.CSSProperties> = {
+  page:      { maxWidth: 960, margin: '0 auto', padding: '28px 24px' },
+  topBar:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
+  h1:        { fontSize: 20, fontWeight: 800, color: '#1e293b', margin: 0 },
+  tabs:      { display: 'flex', gap: 8, background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: 4 },
+  tabActive: { background: '#eff6ff', color: '#1d4ed8', border: 'none', padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
+  tabIdle:   { background: 'none', color: '#64748b', border: 'none', padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' },
+  card:      { background: 'white', borderRadius: 18, border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.05)' },
+  subHdr:    { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe' },
+  tchHdr:    { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: '#f5f3ff', borderBottom: '1px solid #ddd6fe' },
+  grid:      { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(190px,1fr))', gap: 10, padding: 14 },
+  btnOn:     { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, border: '2px solid #4ade80', background: '#f0fdf4', cursor: 'pointer', textAlign: 'right' as const, transition: 'all .15s' },
+  btnOff:    { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, border: '2px solid #e2e8f0', background: 'white', cursor: 'pointer', textAlign: 'right' as const, transition: 'all .15s' },
+  avatar:    { width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 },
+  toast:     { position: 'fixed' as const, bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#16a34a', color: 'white', padding: '10px 24px', borderRadius: 12, fontSize: 13, fontWeight: 700, zIndex: 100, boxShadow: '0 4px 20px rgba(0,0,0,.2)' },
+  empty:     { textAlign: 'center' as const, padding: '60px 0', color: '#94a3b8' },
 }
 
 export default function AssignmentsPage() {
   const router = useRouter()
-  const [subjects,     setSubjects]     = useState<Subject[]>([])
-  const [teachers,     setTeachers]     = useState<Profile[]>([])
-  const [assignments,  setAssignments]  = useState<Assignment[]>([])
-  const [loading,      setLoading]      = useState(true)
-  const [saving,       setSaving]       = useState(false)
-  const [toast,        setToast]        = useState('')
+  const [subjects,    setSubjects]    = useState<Subject[]>([])
+  const [teachers,    setTeachers]    = useState<Profile[]>([])
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [saving,      setSaving]      = useState(false)
+  const [toast,       setToast]       = useState('')
+  const [viewMode,    setViewMode]    = useState<'by-subject'|'by-teacher'>('by-subject')
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(''), 3000)
-  }
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
   async function load() {
-    const [{ data: subs }, { data: teachers }, { data: assigns }] = await Promise.all([
+    const [{ data: subs }, { data: tchs }, { data: asgn }] = await Promise.all([
       supabase.from('subjects').select('*').order('order_num'),
       supabase.from('profiles').select('*').eq('role', 'teacher').order('full_name'),
       supabase.from('teacher_subjects').select('*'),
     ])
     setSubjects(subs || [])
-    setTeachers(teachers || [])
-    setAssignments(assigns || [])
+    setTeachers(tchs || [])
+    setAssignments(asgn || [])
     setLoading(false)
   }
 
   useEffect(() => { load() }, [])
 
-  function isAssigned(teacherId: string, subjectId: string) {
-    return assignments.some(a => a.teacher_id === teacherId && a.subject_id === subjectId)
+  function isAssigned(tId: string, sId: string) {
+    return assignments.some(a => a.teacher_id === tId && a.subject_id === sId)
   }
 
-  async function toggleAssignment(teacherId: string, subjectId: string) {
+  async function toggle(tId: string, sId: string) {
     setSaving(true)
-    if (isAssigned(teacherId, subjectId)) {
-      await supabase.from('teacher_subjects')
-        .delete()
-        .eq('teacher_id', teacherId)
-        .eq('subject_id', subjectId)
-      setAssignments(a => a.filter(x => !(x.teacher_id === teacherId && x.subject_id === subjectId)))
+    if (isAssigned(tId, sId)) {
+      await supabase.from('teacher_subjects').delete().eq('teacher_id', tId).eq('subject_id', sId)
+      setAssignments(a => a.filter(x => !(x.teacher_id === tId && x.subject_id === sId)))
       showToast('تم إلغاء التعيين')
     } else {
-      await supabase.from('teacher_subjects')
-        .insert({ teacher_id: teacherId, subject_id: subjectId })
-      setAssignments(a => [...a, { teacher_id: teacherId, subject_id: subjectId }])
-      showToast('✅ تم التعيين بنجاح')
+      await supabase.from('teacher_subjects').insert({ teacher_id: tId, subject_id: sId })
+      setAssignments(a => [...a, { teacher_id: tId, subject_id: sId }])
+      showToast('✅ تم التعيين')
     }
     setSaving(false)
   }
 
-  // Teachers per subject
-  function getSubjectTeachers(subjectId: string) {
-    return teachers.filter(t => isAssigned(t.id, subjectId))
-  }
-
-  // Subjects per teacher
-  function getTeacherSubjects(teacherId: string) {
-    return subjects.filter(s => isAssigned(teacherId, s.id))
-  }
-
-  const [viewMode, setViewMode] = useState<'by-subject'|'by-teacher'>('by-subject')
-
   return (
-    <div>
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-xl shadow-2xl text-sm font-semibold">
-          {toast}
+    <div style={S.page}>
+      {toast && <div style={S.toast}>{toast}</div>}
+
+      <div style={S.topBar}>
+        <h1 style={S.h1}>🔗 التعيينات</h1>
+        <div style={S.tabs}>
+          <button style={viewMode === 'by-subject' ? S.tabActive : S.tabIdle}
+                  onClick={() => setViewMode('by-subject')}>حسب المادة</button>
+          <button style={viewMode === 'by-teacher' ? S.tabActive : S.tabIdle}
+                  onClick={() => setViewMode('by-teacher')}>حسب المعلم</button>
         </div>
+      </div>
+
+      {loading ? (
+        <div style={S.empty}>⏳ جاري التحميل...</div>
+      ) : teachers.length === 0 ? (
+        <div style={S.empty}>
+          <div style={{ fontSize: 52, marginBottom: 12 }}>👨‍🏫</div>
+          <p style={{ marginBottom: 8 }}>لا يوجد معلمون بعد</p>
+          <button onClick={() => router.push('/users')}
+                  style={{ background: 'none', border: 'none', color: '#1d4ed8', cursor: 'pointer', fontSize: 13 }}>
+            إضافة معلمين من صفحة المستخدمين ←
+          </button>
+        </div>
+      ) : viewMode === 'by-subject' ? (
+        subjects.map(s => (
+          <div key={s.id} style={S.card}>
+            <div style={S.subHdr}>
+              <span style={{ fontSize: 24 }}>{s.icon || '📚'}</span>
+              <span style={{ fontWeight: 700, color: '#1e3a8a', fontSize: 15 }}>{s.name}</span>
+              <span style={{ marginRight: 'auto', fontSize: 12, color: '#3b82f6' }}>
+                {assignments.filter(a => a.subject_id === s.id).length} معلم مُعيَّن
+              </span>
+            </div>
+            <div style={S.grid}>
+              {teachers.map(t => {
+                const on = isAssigned(t.id, s.id)
+                return (
+                  <button key={t.id} onClick={() => toggle(t.id, s.id)} disabled={saving}
+                          style={{ ...(on ? S.btnOn : S.btnOff), opacity: saving ? .6 : 1 }}>
+                    <div style={{ ...S.avatar, background: on ? '#16a34a' : '#f1f5f9', color: on ? 'white' : '#64748b' }}>
+                      {on ? '✓' : (t.full_name?.charAt(0) || '؟')}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: on ? '#15803d' : '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.full_name}</div>
+                      <div style={{ fontSize: 11, color: on ? '#16a34a' : '#94a3b8' }}>{on ? '✅ مُعيَّن' : 'اضغط للتعيين'}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))
+      ) : (
+        teachers.map(t => (
+          <div key={t.id} style={S.card}>
+            <div style={S.tchHdr}>
+              <div style={{ ...S.avatar, background: '#7c3aed', color: 'white', fontSize: 15 }}>
+                {t.full_name?.charAt(0) || '؟'}
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, color: '#4c1d95', fontSize: 15 }}>{t.full_name}</div>
+                {t.phone && <div style={{ fontSize: 11, color: '#7c3aed' }}>{t.phone}</div>}
+              </div>
+              <span style={{ marginRight: 'auto', fontSize: 12, color: '#7c3aed' }}>
+                {assignments.filter(a => a.teacher_id === t.id).length} مادة مُعيَّنة
+              </span>
+            </div>
+            <div style={S.grid}>
+              {subjects.map(s => {
+                const on = isAssigned(t.id, s.id)
+                return (
+                  <button key={s.id} onClick={() => toggle(t.id, s.id)} disabled={saving}
+                          style={{ ...(on ? S.btnOn : S.btnOff), opacity: saving ? .6 : 1 }}>
+                    <span style={{ fontSize: 22, flexShrink: 0 }}>{s.icon || '📚'}</span>
+                    <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: on ? '#15803d' : '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
+                      <div style={{ fontSize: 11, color: on ? '#16a34a' : '#94a3b8' }}>{on ? '✅ مُعيَّنة' : 'اضغط للتعيين'}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))
       )}
-
-      {/* Header */}
-
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        {loading ? (
-          <div className="text-center py-20 text-slate-400">⏳ جاري التحميل...</div>
-        ) : teachers.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">👨‍🏫</div>
-            <p className="text-slate-500 mb-2">لا يوجد معلمون بعد</p>
-            <button onClick={() => router.push('/users')}
-                    className="text-blue-600 hover:underline text-sm">
-              إضافة معلمين من صفحة المستخدمين →
-            </button>
-          </div>
-        ) : viewMode === 'by-subject' ? (
-
-          /* ── View by Subject ── */
-          <div className="space-y-4">
-            {subjects.map(s => (
-              <div key={s.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                {/* Subject header */}
-                <div className="flex items-center gap-3 px-5 py-4 bg-blue-50 border-b border-blue-100">
-                  <span className="text-2xl">{s.icon || '📚'}</span>
-                  <h2 className="font-bold text-blue-900">{s.name}</h2>
-                  <span className="text-blue-500 text-xs mr-auto">
-                    {getSubjectTeachers(s.id).length} معلم مُعيَّن
-                  </span>
-                </div>
-                {/* Teachers grid */}
-                <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {teachers.map(t => {
-                    const assigned = isAssigned(t.id, s.id)
-                    return (
-                      <button key={t.id}
-                              onClick={() => toggleAssignment(t.id, s.id)}
-                              disabled={saving}
-                              className={`flex items-center gap-3 p-3 rounded-xl border-2 text-right transition-all disabled:opacity-50 ${
-                                assigned
-                                  ? 'border-green-400 bg-green-50 text-green-800'
-                                  : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50'
-                              }`}>
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                          assigned ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {t.full_name?.charAt(0) || '?'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">{t.full_name}</p>
-                          <p className="text-xs opacity-60">{assigned ? '✅ مُعيَّن' : 'اضغط للتعيين'}</p>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-        ) : (
-
-          /* ── View by Teacher ── */
-          <div className="space-y-4">
-            {teachers.map(t => (
-              <div key={t.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                {/* Teacher header */}
-                <div className="flex items-center gap-3 px-5 py-4 bg-purple-50 border-b border-purple-100">
-                  <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center font-bold text-white">
-                    {t.full_name?.charAt(0) || '?'}
-                  </div>
-                  <div>
-                    <h2 className="font-bold text-purple-900">{t.full_name}</h2>
-                    {t.phone && <p className="text-purple-500 text-xs">{t.phone}</p>}
-                  </div>
-                  <span className="text-purple-500 text-xs mr-auto">
-                    {getTeacherSubjects(t.id).length} مادة مُعيَّنة
-                  </span>
-                </div>
-                {/* Subjects grid */}
-                <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {subjects.map(s => {
-                    const assigned = isAssigned(t.id, s.id)
-                    return (
-                      <button key={s.id}
-                              onClick={() => toggleAssignment(t.id, s.id)}
-                              disabled={saving}
-                              className={`flex items-center gap-3 p-3 rounded-xl border-2 text-right transition-all disabled:opacity-50 ${
-                                assigned
-                                  ? 'border-green-400 bg-green-50 text-green-800'
-                                  : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50'
-                              }`}>
-                        <span className="text-2xl flex-shrink-0">{s.icon || '📚'}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">{s.name}</p>
-                          <p className="text-xs opacity-60">{assigned ? '✅ مُعيَّنة' : 'اضغط للتعيين'}</p>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
     </div>
   )
 }
