@@ -11,6 +11,11 @@ export interface Profile {
   phone: string | null
   avatar_url: string | null
   shopify_customer_id: string | null
+  device_id: string | null
+  device_pending: string | null
+  device_approved_at: string | null
+  theme: string | null
+  font_size: string | null
   created_at: string
   updated_at: string
 }

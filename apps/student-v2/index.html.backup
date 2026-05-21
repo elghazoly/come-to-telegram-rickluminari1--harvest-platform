@@ -432,7 +432,6 @@
         <button class="hbtn" onclick="goHome()">🏠 الرئيسية</button>
         <button class="hbtn" onclick="toggleResults()">📊 نتائجي</button>
         <button class="hbtn" onclick="openContact()">💬 تواصل</button>
-        <button class="hbtn" onclick="openSettings()">⚙️ <span>الإعدادات</span></button>
         <button class="hbtn danger" onclick="doLogout()">خروج</button>
       </div>
     </div>
@@ -790,52 +789,6 @@
   </div>
 </div>
 
-<!-- Settings modal -->
-<div id="settings-modal" class="modal-overlay hidden">
-  <div class="modal-box" style="max-width:420px">
-    <div class="modal-header">
-      <span>⚙️ الإعدادات</span>
-      <button class="modal-close" onclick="closeSettings()">×</button>
-    </div>
-    <div class="modal-body" style="padding:24px">
-
-      <!-- Theme -->
-      <div style="margin-bottom:24px">
-        <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:12px">🌙 مظهر المنصة</div>
-        <div style="display:flex;gap:10px">
-          <button onclick="setTheme('light')" id="theme-light"
-            style="flex:1;padding:12px;border-radius:12px;border:2px solid #e2e8f0;cursor:pointer;font-weight:700;font-size:13px;background:white;color:#1e293b">
-            ☀️ فاتح
-          </button>
-          <button onclick="setTheme('dark')" id="theme-dark"
-            style="flex:1;padding:12px;border-radius:12px;border:2px solid #e2e8f0;cursor:pointer;font-weight:700;font-size:13px;background:#1e293b;color:white">
-            🌙 داكن
-          </button>
-        </div>
-      </div>
-
-      <!-- Font Size -->
-      <div style="margin-bottom:24px">
-        <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:12px">🔤 حجم الخط</div>
-        <div style="display:flex;gap:10px">
-          <button onclick="setFontSize('small')" id="font-small"
-            style="flex:1;padding:10px;border-radius:12px;border:2px solid #e2e8f0;cursor:pointer;font-size:12px;font-weight:700">صغير</button>
-          <button onclick="setFontSize('medium')" id="font-medium"
-            style="flex:1;padding:10px;border-radius:12px;border:2px solid #e2e8f0;cursor:pointer;font-size:15px;font-weight:700">متوسط</button>
-          <button onclick="setFontSize('large')" id="font-large"
-            style="flex:1;padding:10px;border-radius:12px;border:2px solid #e2e8f0;cursor:pointer;font-size:18px;font-weight:700">كبير</button>
-        </div>
-      </div>
-
-      <!-- Save -->
-      <button onclick="saveSettings()"
-        style="width:100%;padding:14px;background:linear-gradient(90deg,#0a2d6e,#1a4fa8);color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">
-        💾 حفظ الإعدادات
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- Contact modal -->
 <div id="contact-modal" class="modal-overlay hidden">
   <div class="modal-box">
@@ -863,15 +816,6 @@ let STATE = {
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-function getDeviceId() {
-  let id = localStorage.getItem('harvest_device_id')
-  if (!id) {
-    id = 'dev_' + Date.now() + '_' + Math.random().toString(36).slice(2)
-    localStorage.setItem('harvest_device_id', id)
-  }
-  return id
-}
-
 async function doLogin() {
   const email = document.getElementById('email').value
   const pass  = document.getElementById('password').value
@@ -879,35 +823,7 @@ async function doLogin() {
   err.classList.add('hidden')
   const { error } = await db.auth.signInWithPassword({ email, password: pass })
   if (error) { err.textContent = 'البريد أو كلمة المرور غير صحيحة'; err.classList.remove('hidden'); return }
-
-  const { data: { user } } = await db.auth.getUser()
-  const deviceId = getDeviceId()
-
-  const { data: prof } = await db.from('profiles').select('device_id,device_pending,role').eq('id', user.id).single()
-
-  if (prof?.role === 'admin' || prof?.role === 'teacher') {
-    await initApp(); return
-  }
-
-  if (!prof?.device_id) {
-    await db.from('profiles').update({ device_id: deviceId }).eq('id', user.id)
-    await initApp(); return
-  }
-
-  if (prof.device_id === deviceId) {
-    await initApp(); return
-  }
-
-  if (prof.device_pending === deviceId) {
-    await db.auth.signOut()
-    err.textContent = 'طلبك قيد المراجعة — انتظر موافقة الأدمن'
-    err.classList.remove('hidden'); return
-  }
-
-  await db.from('profiles').update({ device_pending: deviceId }).eq('id', user.id)
-  await db.auth.signOut()
-  err.textContent = 'تم إرسال طلب تسجيل جهاز جديد — انتظر موافقة الأدمن'
-  err.classList.remove('hidden')
+  await initApp()
 }
 
 async function doLogout() {
@@ -923,11 +839,6 @@ async function initApp() {
 
   document.getElementById('login-page').classList.add('hidden')
   document.getElementById('app-page').classList.remove('hidden')
-
-  const savedTheme = localStorage.getItem('harvest_theme') || 'light'
-  const savedFont = localStorage.getItem('harvest_font_size') || 'medium'
-  applyTheme(savedTheme)
-  applyFontSize(savedFont)
 
   // Load settings
   try {
@@ -1623,82 +1534,6 @@ function contactAction(type) {
 }
 
 function closeContact() { document.getElementById('contact-modal').classList.add('hidden') }
-
-// ── Settings ──────────────────────────────────────────────────────────────────
-function openSettings() {
-  const modal = document.getElementById('settings-modal')
-  modal.classList.remove('hidden')
-  const theme = localStorage.getItem('harvest_theme') || 'light'
-  const fontSize = localStorage.getItem('harvest_font_size') || 'medium'
-  updateThemeButtons(theme)
-  updateFontButtons(fontSize)
-}
-
-function closeSettings() {
-  document.getElementById('settings-modal').classList.add('hidden')
-}
-
-function setTheme(theme) {
-  localStorage.setItem('harvest_theme', theme)
-  applyTheme(theme)
-  updateThemeButtons(theme)
-}
-
-function applyTheme(theme) {
-  if (theme === 'dark') {
-    document.body.style.background = '#0f172a'
-    document.body.style.color = '#e2e8f0'
-    document.querySelectorAll('.subject-card, .section-card, .sidebar, header, .modal-box').forEach(el => {
-      el.style.background = '#1e293b'
-      el.style.borderColor = '#334155'
-      el.style.color = '#e2e8f0'
-    })
-  } else {
-    document.body.style.background = '#f1f5f9'
-    document.body.style.color = '#1e293b'
-    document.querySelectorAll('.subject-card, .section-card, .sidebar, header, .modal-box').forEach(el => {
-      el.style.background = ''
-      el.style.borderColor = ''
-      el.style.color = ''
-    })
-  }
-}
-
-function updateThemeButtons(theme) {
-  document.getElementById('theme-light').style.border = theme === 'light' ? '2px solid #1d4ed8' : '2px solid #e2e8f0'
-  document.getElementById('theme-dark').style.border = theme === 'dark' ? '2px solid #6366f1' : '2px solid #e2e8f0'
-}
-
-function setFontSize(size) {
-  localStorage.setItem('harvest_font_size', size)
-  applyFontSize(size)
-  updateFontButtons(size)
-}
-
-function applyFontSize(size) {
-  const sizes = { small: '16px', medium: '19px', large: '22px' }
-  document.documentElement.style.fontSize = sizes[size] || '19px'
-}
-
-function updateFontButtons(size) {
-  ['small','medium','large'].forEach(s => {
-    const btn = document.getElementById('font-' + s)
-    btn.style.border = s === size ? '2px solid #1d4ed8' : '2px solid #e2e8f0'
-  })
-}
-
-async function saveSettings() {
-  const theme = localStorage.getItem('harvest_theme') || 'light'
-  const fontSize = localStorage.getItem('harvest_font_size') || 'medium'
-  const { data: { user } } = await db.auth.getUser()
-  if (user) {
-    await db.from('profiles').update({ theme, font_size: fontSize }).eq('id', user.id)
-  }
-  closeSettings()
-  const btn = document.querySelector('#settings-modal button[onclick="saveSettings()"]')
-  btn.textContent = '✅ تم الحفظ'
-  setTimeout(() => { btn.textContent = '💾 حفظ الإعدادات' }, 2000)
-}
 
 // ── Files section ────────────────────────────────────────────────────────────
 function showFilesSection() {

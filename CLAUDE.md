@@ -106,3 +106,8 @@ Webhook to register:
   Topic: orders/paid
   URL: https://[admin-domain]/api/shopify/webhook
 
+
+## Subdomains
+- https://admin.harvste.com -> Admin (port 3000)
+- https://teacher.harvste.com -> Teacher (port 3001)
+- https://student.harvste.com -> Student (port 3004)

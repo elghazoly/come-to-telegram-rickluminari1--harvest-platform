@@ -4,6 +4,7 @@ import crypto from 'crypto'
 const CLIENT_SECRET = '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'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const RESEND_API_KEY = process.env.RESEND_API_KEY!
 
 async function supabaseGet(table: string, filters: string) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
@@ -37,6 +38,36 @@ async function supabasePatch(table: string, filters: string, body: object) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(body)
+  })
+}
+
+async function sendWelcomeEmail(email: string, fullName: string, password: string) {
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: 'هارفست للقدرات <noreply@harvste.com>',
+      to: email,
+      subject: 'مرحباً بك في منصة هارفست — بيانات دخولك',
+      html: `
+        <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #1e293b;">مرحباً ${fullName} 👋</h2>
+          <p>تم تفعيل اشتراكك في منصة هارفست للقدرات بنجاح.</p>
+          <p>بيانات دخولك:</p>
+          <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>الإيميل:</strong> ${email}</p>
+            <p><strong>كلمة المرور:</strong> ${password}</p>
+          </div>
+          <a href="https://www.harvste.com/student" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">
+            ادخل للمنصة
+          </a>
+          <p style="margin-top: 20px; color: #64748b; font-size: 14px;">يمكنك تغيير كلمة المرور بعد تسجيل الدخول.</p>
+        </div>
+      `
+    })
   })
 }
 
@@ -76,6 +107,7 @@ export async function POST(req: NextRequest) {
       : null
 
     let studentId: string | null = null
+    let isNewStudent = false
 
     const existing = await supabaseGet('profiles',
       `or=(email.eq.${email},phone.eq.${phone})&select=id&limit=1`)
@@ -107,12 +139,15 @@ export async function POST(req: NextRequest) {
       const authData = await authRes.json()
       if (!authData?.id) continue
       studentId = authData.id
+      isNewStudent = true
 
       await supabasePatch('profiles', `id=eq.${studentId}`, {
         full_name: fullName,
         phone,
         shopify_customer_id: shopifyCustomerId
       })
+
+      await sendWelcomeEmail(email, fullName, password)
     }
 
     await supabasePost('enrollments', {

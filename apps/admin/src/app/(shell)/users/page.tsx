@@ -90,6 +90,25 @@ export default function UsersPage() {
     await load()
   }
 
+  async function handleApproveDevice(u: any) {
+    await supabase.from('profiles').update({
+      device_id: u.device_pending,
+      device_pending: null,
+      device_approved_at: new Date().toISOString()
+    }).eq('id', u.id)
+    await load()
+  }
+
+  async function handleResetDevice(u: any) {
+    if (!confirm('هل تريد إعادة تعيين الجهاز؟')) return
+    await supabase.from('profiles').update({
+      device_id: null,
+      device_pending: null,
+      device_approved_at: null
+    }).eq('id', u.id)
+    await load()
+  }
+
   async function handleRoleChange(u: ProfileWithEmail, role: string) {
     await supabase.from('profiles').update({ role }).eq('id', u.id)
     await load()
@@ -187,10 +206,24 @@ export default function UsersPage() {
                       {new Date(u.created_at).toLocaleDateString('ar-EG')}
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <button onClick={() => handleDelete(u)}
-                              className="text-red-500 hover:text-red-700 text-sm font-medium hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
-                        🗑️ حذف
-                      </button>
+                      <div style={{display:'flex',gap:8,justifyContent:'center',alignItems:'center'}}>
+                        {u.device_pending && (
+                          <button onClick={() => handleApproveDevice(u)}
+                                  style={{background:'#dcfce7',color:'#166534',border:'none',padding:'4px 10px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                            📱 موافقة جهاز
+                          </button>
+                        )}
+                        {u.device_id && (
+                          <button onClick={() => handleResetDevice(u)}
+                                  style={{background:'#fef9c3',color:'#854d0e',border:'none',padding:'4px 10px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                            🔄 إعادة تعيين
+                          </button>
+                        )}
+                        <button onClick={() => handleDelete(u)}
+                                className="text-red-500 hover:text-red-700 text-sm font-medium hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+                          🗑️ حذف
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
