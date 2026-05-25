@@ -699,11 +699,11 @@
           <div class="sc-desc">أسئلة مجمّعة من جميع السنوات</div>
           <span class="sc-badge soon">قريباً</span>
         </div>
-        <div class="section-card green" onclick="">
+        <div class="section-card green" onclick="showExams()">
           <div class="sc-icon green">💻</div>
           <div class="sc-name">اختبارات إلكترونية</div>
           <div class="sc-desc">اختبر نفسك بأسلوب الاختبار الحقيقي</div>
-          <span class="sc-badge soon">قريباً</span>
+          <span class="sc-badge new">متاح</span>
         </div>
         <div class="section-card purple" onclick="">
           <div class="sc-icon purple">🎯</div>
@@ -760,13 +760,31 @@
       <div id="chapters-list"></div>
     </div>
       <div class="sticky-bar">
+        <div style="margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <button onclick="STATE.activeChapter=null;renderSidebar();document.getElementById('questions-list').innerHTML='';document.getElementById('chapters-grid').style.display='grid';document.getElementById('prev-attempts-banner').style.display='none'"
+              style="white-space:nowrap;padding:7px 12px;background:#f1f5f9;color:#475569;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">
+              ← كل الفصول
+            </button>
+            <span style="font-size:15px;font-weight:800;color:#1d4ed8;padding:7px 12px;background:#eff6ff;border-radius:10px;border:1.5px solid #bfdbfe;white-space:nowrap">
+              📚 اختر الفصل
+            </span>
+          </div>
+          <select id="chapter-select" onchange="switchChapter(this.value)"
+            style="width:100%;margin-top:8px;padding:8px 12px;border-radius:10px;border:1.5px solid #1d4ed8;font-size:14px;font-weight:600;cursor:pointer;background:var(--bg-card);color:var(--text)">
+            <option value="">— اختر الفصل —</option>
+          </select>
+        </div>
         <div class="progress-row">
           <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
           <span id="progress-text" style="font-size:12px;font-weight:700;color:#475569;white-space:nowrap">0/0</span>
         </div>
         <div class="year-filters" id="year-filters"></div>
       </div>
+      <div id="chapters-grid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;padding:16px"></div>
+      <div id="prev-attempts-banner" style="padding:12px 16px 0;display:none"></div>
       <div id="exam-start" class="hidden"></div>
+      <div id="exam-screen" class="hidden" style="padding:16px"></div>
       <div id="exam-timer-bar" class="hidden exam-running">
         <span id="exam-ch-name" style="font-weight:700;color:#374151"></span>
         <div id="exam-timer-display" style="font-size:22px;font-weight:900;color:#dc2626"></div>
@@ -858,7 +876,7 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
 let STATE = {
   subjects: [], answers: {}, activeSubject: null, activeChapter: null,
   yearFilter: 'all', hints: {}, aiChats: {}, openVideos: {}, openAns: {},
-  examStarted: false, examTimer: null, examTimeLeft: 0,
+  examStarted: false, examTimer: null, examTimeLeft: 0, examQuestionIndex: 0, examMode: false, examCustomTimer: 0, showAnswersDuring: true,
   siteSettings: { CONTACT_EMAIL:'info@harvste.com', CONTACT_WHATSAPP:'966500000000', CONTACT_WEBSITE:'https://www.harvste.com' }
 }
 
@@ -1054,6 +1072,12 @@ function showSubjects() {
 }
 
 function showSubjectPicker() {
+  history.pushState({page:"subjects"},""," /student/subjects")
+  const grid = document.getElementById('chapters-grid')
+  if (grid) grid.style.display = 'none'
+  const banner = document.getElementById('prev-attempts-banner')
+  if (banner) { banner.style.display = 'none'; banner.innerHTML = '' }
+  document.getElementById('questions-list').innerHTML = ''
   document.getElementById('subject-picker').classList.add('active')
   document.getElementById('section-picker').classList.remove('active')
   hideSidebars()
@@ -1097,14 +1121,33 @@ function showSectionPicker() {
 }
 
 function showLessons() {
+  history.pushState({page:"lessons"},""," /student/lessons")
+  STATE.examMode = false
+  STATE.examStarted = false
+  STATE.activeChapter = null
   document.getElementById('section-picker').classList.remove('active')
   document.getElementById('subject-picker').classList.remove('active')
-  showChaptersSidebar()
+  document.getElementById('home-page').style.display = 'none'
+  document.getElementById('subjects-view').style.display = 'flex'
   document.getElementById('subject-tabs').style.display = 'none'
-  // Set first chapter
-  const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
-  if (sub?.chapters.length) STATE.activeChapter = sub.chapters[0].id
-  renderAll()
+  document.getElementById('questions-list').innerHTML = ''
+  showChaptersSidebar()
+  renderSidebar()
+}
+
+function showExams() {
+  history.pushState({page:"exams"},""," /student/exams")
+  STATE.examMode = true
+  STATE.examStarted = false
+  STATE.activeChapter = null
+  document.getElementById('section-picker').classList.remove('active')
+  document.getElementById('subject-picker').classList.remove('active')
+  document.getElementById('home-page').style.display = 'none'
+  document.getElementById('subjects-view').style.display = 'flex'
+  document.getElementById('subject-tabs').style.display = 'none'
+  document.getElementById('questions-list').innerHTML = ''
+  showChaptersSidebar()
+  renderSidebar()
 }
 
 function hideSidebars() {
@@ -1122,7 +1165,7 @@ function hideSidebars() {
 
 function showChaptersSidebar() {
   const chSidebar = document.querySelector('#subjects-view .sidebar')
-  if (chSidebar) { chSidebar.style.display = 'flex'; chSidebar.style.flexDirection = 'column'; }
+  if (chSidebar) chSidebar.style.display = 'none'
   const stickyBar = document.querySelector('.sticky-bar')
   if (stickyBar) stickyBar.style.display = 'block'
 }
@@ -1259,18 +1302,66 @@ function switchSubject(sid) {
 function renderSidebar() {
   const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
   const el  = document.getElementById('chapters-list')
-  if (!sub) { el.innerHTML = ''; return }
-  el.innerHTML = sub.chapters.map(c => {
+  if (!sub) { if(el) el.innerHTML = ''; return }
+
+  const colors = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4']
+
+  // Populate chapter select - filter by view type
+  const chSelect = document.getElementById('chapter-select')
+  if (chSelect) {
+    const viewChs = sub.chapters.filter(c => STATE.examMode ? c.chapter_type === 'exam' : c.chapter_type !== 'exam')
+    chSelect.innerHTML = '<option value="">— اختر الفصل —</option>' +
+      viewChs.map((c,i) => {
+        const cA = c.questions.filter(q => STATE.answers[q.id]).length
+        const cP = c.questions.length ? Math.round(cA/c.questions.length*100) : 0
+        return `<option value="${c.id}" ${c.id===STATE.activeChapter?'selected':''}>${c.icon||'📂'} ${c.name} (${cP}%)</option>`
+      }).join('')
+  }
+
+  // Show chapters grid if no chapter selected
+  const chaptersGrid = document.getElementById('chapters-grid')
+  if (chaptersGrid) {
+    if (!STATE.activeChapter) {
+      chaptersGrid.style.display = 'grid'
+      const gridChapters = sub.chapters.filter(c => STATE.examMode ? c.chapter_type === 'exam' : c.chapter_type !== 'exam')
+      chaptersGrid.innerHTML = gridChapters.map((c,i) => {
+        const cA = c.questions.filter(q => STATE.answers[q.id]).length
+        const cP = c.questions.length ? Math.round(cA/c.questions.length*100) : 0
+        const color = colors[i % colors.length]
+        return `
+        <div onclick="switchChapter('${c.id}')"
+          style="background:var(--bg-card);border-radius:14px;border:2px solid ${color}30;padding:16px;cursor:pointer;transition:all .2s;position:relative"
+          onmouseover="this.style.borderColor='${color}';this.style.transform='translateY(-2px)'"
+          onmouseout="this.style.borderColor='${color}30';this.style.transform='translateY(0)'">
+          <div style="font-size:26px;margin-bottom:8px">${c.icon||'📂'}</div>
+          <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:10px;line-height:1.4">${c.name}</div>
+          <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:6px">
+            <div style="width:${cP}%;height:100%;background:${color};border-radius:3px"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:11px;color:var(--text-muted)">${c.questions.length} سؤال</span>
+            <span style="font-size:12px;font-weight:700;color:${color}">${cP}%</span>
+          </div>
+          ${cP===100?'<div style="position:absolute;top:8px;left:8px;background:#10b981;color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">✓ مكتمل</div>':''}
+        </div>`
+      }).join('')
+    } else {
+      chaptersGrid.style.display = 'none'
+    }
+  }
+  // Filter chapters by current view (lesson/exam)
+  const viewChapters = sub.chapters.filter(c =>
+    STATE.examMode ? c.chapter_type === 'exam' : c.chapter_type !== 'exam'
+  )
+
+  el.innerHTML = viewChapters.map(c => {
     const cA = c.questions.filter(q => STATE.answers[q.id]).length
-    const cC = c.questions.filter(q => STATE.answers[q.id]?.correct).length
     const cP = c.questions.length ? Math.round(cA/c.questions.length*100) : 0
     const isA = c.id === STATE.activeChapter
-    const examBadge = c.chapter_type === 'exam' ? `<span style="font-size:10px;font-weight:700;background:${isA?'rgba(255,255,255,.2)':'#fff7ed'};color:${isA?'white':'#c2410c'};padding:2px 6px;border-radius:4px">📝 اختبار</span>` : ''
     return `
     <button class="ch-btn ${isA?'active':''}" onclick="switchChapter('${c.id}')">
       <div class="ch-name">${c.icon||''} ${c.name}</div>
       <div class="ch-meta" style="display:flex;gap:6px;align-items:center;margin-top:3px">
-        ${examBadge}
         <span>${cA}/${c.questions.length} • ${cP}%</span>
       </div>
       <div class="ch-progress-bg"><div class="ch-progress-fill" style="width:${cP}%"></div></div>
@@ -1279,9 +1370,12 @@ function renderSidebar() {
 }
 
 function switchChapter(cid) {
+  if (!cid) return
   STATE.activeChapter = cid
   STATE.yearFilter = 'all'
   STATE.examStarted = false
+  STATE.examQuestionIndex = 0
+  STATE.examCustomTimer = 0
   clearExamTimer()
   renderSidebar()
   renderQuestions()
@@ -1290,6 +1384,13 @@ function switchChapter(cid) {
 function renderQuestions() {
   const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
   const ch  = sub?.chapters.find(c => c.id === STATE.activeChapter)
+
+  // If no chapter selected or chapter type doesn't match current view - clear
+  if (ch && STATE.examMode !== (ch.chapter_type === 'exam')) {
+    document.getElementById('questions-list').innerHTML = ''
+    return
+  }
+
   const allQ = ch?.questions || []
   const qs   = allQ.filter(q => STATE.yearFilter === 'all' || String(q.year) === STATE.yearFilter)
   const years = [...new Set(allQ.filter(q => q.year).map(q => String(q.year)))].sort((a,b) => +b-+a)
@@ -1308,36 +1409,73 @@ function renderQuestions() {
 
   // Exam
   const isExam   = ch?.chapter_type === 'exam'
-  const hasTimer = isExam && ch?.timer_enabled
-  const examStart = document.getElementById('exam-start')
   const examBar   = document.getElementById('exam-timer-bar')
+  const examStart = document.getElementById('exam-start')
 
-  if (hasTimer && !STATE.examStarted) {
-    examStart.innerHTML = `
-      <div style="text-align:center;padding:40px 24px">
-        <div style="font-size:48px;margin-bottom:12px">📝</div>
-        <div style="font-size:22px;font-weight:900;color:#9a3412;margin-bottom:8px">${ch.name}</div>
-        <div style="color:#c2410c;font-size:14px;margin-bottom:6px">مدة الاختبار: <strong>${Math.round((ch.timer_duration||1800)/60)} دقيقة</strong></div>
-        <div style="color:#c2410c;font-size:14px;margin-bottom:24px">عدد الأسئلة: <strong>${qs.length}</strong></div>
-        <button class="start-btn" onclick="startExam(${ch.timer_duration||1800},'${ch.name}')">🚀 ابدأ الاختبار</button>
-      </div>`
-    examStart.classList.remove('hidden')
-    examBar.classList.add('hidden')
-    document.getElementById('questions-list').innerHTML = ''
-    return
+  if (isExam) {
+    examStart.classList.add('hidden')
+    if (!STATE.examStarted) {
+      examBar.classList.add('hidden')
+      showExamScreen(ch, qs)
+      return
+    } else {
+      if (STATE.examCustomTimer > 0) {
+        examBar.classList.remove('hidden')
+        document.getElementById('exam-ch-name').textContent = '📝 ' + ch.name
+      } else {
+        examBar.classList.add('hidden')
+      }
+      renderNewExamQuestion()
+      return
+    }
   } else {
     examStart.classList.add('hidden')
+    examBar.classList.add('hidden')
   }
 
-  if (hasTimer && STATE.examStarted) {
-    examBar.classList.remove('hidden')
-    document.getElementById('exam-ch-name').textContent = '📝 ' + ch.name
-  } else {
-    examBar.classList.add('hidden')
+    // Hide chapters grid when chapter selected
+  const chaptersGrid = document.getElementById('chapters-grid')
+  if (chaptersGrid) chaptersGrid.style.display = 'none'
+
+  // Previous attempts banner
+  const answeredQs = qs.filter(q => STATE.answers[q.id])
+  const prevBanner = document.getElementById('prev-attempts-banner')
+  if (prevBanner) {
+    if (answeredQs.length > 0 && !isExam) {
+      const prevCorrect = answeredQs.filter(q => STATE.answers[q.id]?.correct).length
+      const prevPct = Math.round(prevCorrect / qs.length * 100)
+      prevBanner.style.display = 'block'
+      prevBanner.innerHTML = `
+        <div style="background:var(--bg-card);border:1.5px solid #bfdbfe;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:20px">📊</span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:13px;color:var(--text)">محاولة سابقة</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+              أجبت <strong>${answeredQs.length}/${qs.length}</strong> — صح: <strong style="color:#16a34a">${prevCorrect}</strong> — النتيجة: <strong style="color:${prevPct>=70?'#16a34a':prevPct>=50?'#d97706':'#dc2626'}">${prevPct}%</strong>
+            </div>
+          </div>
+          <button onclick="clearChapterAnswers('${ch?.id}')"
+            style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">
+            🔄 محاولة جديدة
+          </button>
+        </div>`
+    } else {
+      prevBanner.style.display = 'none'
+    }
   }
 
   // Render questions
   document.getElementById('questions-list').innerHTML = qs.map(q => renderQuestion(q)).join('')
+}
+
+function clearChapterAnswers(chId) {
+  if (!confirm('هل تريد مسح إجاباتك السابقة لهذا الفصل؟')) return
+  const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+  const ch = sub?.chapters.find(c => c.id === chId)
+  if (!ch) return
+  ch.questions.forEach(q => { delete STATE.answers[q.id] })
+  renderQuestions()
+  renderSidebar()
 }
 
 function renderQuestion(q) {
@@ -1553,6 +1691,430 @@ function reRenderCard(qid) {
 }
 
 // ── Exam timer ─────────────────────────────────────────────────────────────────
+function hideExamExtras() {
+  const stickyBar = document.querySelector('.sticky-bar')
+  if (stickyBar) stickyBar.style.display = 'none'
+  const banner = document.getElementById('prev-attempts-banner')
+  if (banner) { banner.style.display='none'; banner.innerHTML='' }
+  const grid = document.getElementById('chapters-grid')
+  if (grid) grid.style.display = 'none'
+}
+
+function showExamExtras() {
+  const stickyBar = document.querySelector('.sticky-bar')
+  if (stickyBar) stickyBar.style.display = ''
+}
+
+function showExamScreen(ch, qs) {
+  hideExamExtras()
+  document.getElementById('exam-start').classList.add('hidden')
+  document.getElementById('questions-list').innerHTML = ''
+  document.getElementById('exam-timer-bar').classList.add('hidden')
+
+  const screen = document.getElementById('exam-screen')
+  screen.classList.remove('hidden')
+  screen.innerHTML = `
+    <div style="max-width:520px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="font-size:52px;margin-bottom:12px">📝</div>
+        <div style="font-size:22px;font-weight:900;color:var(--text);margin-bottom:6px">${ch.name}</div>
+        <div style="font-size:14px;color:var(--text-muted)">${qs.length} سؤال</div>
+      </div>
+
+      <div style="background:var(--bg-card);border-radius:16px;border:1px solid var(--border);padding:20px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:14px">⏱️ مدة الاختبار</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${[15,30,45,60,90,120].map(m => `
+            <button onclick="document.querySelectorAll('.etbtn').forEach(b=>{b.style.background='var(--bg)';b.style.color='var(--text)'});this.style.background='#1d4ed8';this.style.color='white';STATE.examCustomTimer=${m*60}"
+              class="etbtn"
+              style="padding:8px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:var(--bg);color:var(--text);font-weight:700;cursor:pointer;font-size:13px">
+              ${m} د
+            </button>`).join('')}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+          <span style="font-size:13px;color:var(--text-muted);white-space:nowrap">أو أدخل الوقت:</span>
+          <input type="number" min="1" max="300" placeholder="دقائق"
+            oninput="STATE.examCustomTimer=parseInt(this.value||0)*60"
+            style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid #e2e8f0;background:var(--bg-card);color:var(--text);font-size:13px">
+        </div>
+      </div>
+
+      <div style="background:var(--bg-card);border-radius:16px;border:1px solid var(--border);padding:20px;margin-bottom:24px">
+        <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:14px">⚙️ إعدادات</div>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+          <input type="checkbox" id="show-answers-during" checked
+            style="width:18px;height:18px;cursor:pointer;accent-color:#1d4ed8">
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--text)">عرض الإجابة أثناء الاختبار</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">أوقفه لعرض الإجابات بعد الانتهاء فقط</div>
+          </div>
+        </label>
+      </div>
+
+      <button onclick="beginNewExam()"
+        style="width:100%;padding:14px;background:linear-gradient(90deg,#ea580c,#c2410c);color:white;border:none;border-radius:14px;font-size:17px;font-weight:800;cursor:pointer">
+        🚀 ابدأ الاختبار
+      </button>
+    </div>`
+}
+
+function beginNewExam() {
+  STATE.showAnswersDuring = document.getElementById('show-answers-during')?.checked !== false
+  STATE.examStarted = true
+  STATE.examQuestionIndex = 0
+  STATE._examQs = null
+
+  const screen = document.getElementById('exam-screen')
+  screen.classList.add('hidden')
+  screen.innerHTML = ''
+
+  if (STATE.examCustomTimer > 0) {
+    const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+    const ch = sub?.chapters.find(c => c.id === STATE.activeChapter)
+    startExam(STATE.examCustomTimer, ch?.name || '')
+  }
+
+  renderNewExamQuestion()
+}
+
+function renderNewExamQuestion() {
+  const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+  const ch = sub?.chapters.find(c => c.id === STATE.activeChapter)
+  const qs = ch?.questions || []
+  STATE._examQs = qs
+
+  const idx = STATE.examQuestionIndex
+  const q = qs[idx]
+
+  if (!q || idx >= qs.length) {
+    showNewExamResults(qs)
+    return
+  }
+
+  // Hide sticky bar elements for exam mode
+  const stickyBar = document.querySelector('.sticky-bar')
+  if (stickyBar) stickyBar.style.display = 'none'
+
+  const answered = STATE.answers[q.id]
+  const showResult = answered && STATE.showAnswersDuring
+
+  // Progress dots
+  const dots = qs.map((qu, i) => {
+    const ans = STATE.answers[qu.id]
+    const bg = !ans ? '#e2e8f0' : ans.correct ? '#10b981' : '#ef4444'
+    const tc = !ans ? '#94a3b8' : 'white'
+    const isActive = i === idx
+    return `<div onclick="STATE.examQuestionIndex=${i};renderNewExamQuestion()"
+      style="width:32px;height:32px;border-radius:50%;background:${bg};color:${tc};
+      display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+      cursor:pointer;box-sizing:border-box;flex-shrink:0;
+      outline:${isActive?'3px solid #1d4ed8':'none'};outline-offset:2px">${i+1}</div>`
+  }).join('')
+
+  const correct = qs.filter(q=>STATE.answers[q.id]?.correct).length
+  const wrong = qs.filter(q=>STATE.answers[q.id]&&!STATE.answers[q.id].correct).length
+
+  // Options
+  const optHtml = q.options.map(opt => {
+    let bg = '#f8fafc', border = '#e2e8f0', icon = ''
+    if (showResult) {
+      if (opt.is_correct) { bg='#f0fdf4'; border='#4ade80'; icon='✅' }
+      else if (STATE.answers[q.id]?.optionId===opt.id) { bg='#fef2f2'; border='#f87171'; icon='❌' }
+      else { bg='#f8fafc'; border='#e2e8f0'; }
+    } else if (answered && STATE.answers[q.id]?.optionId===opt.id) {
+      bg='#eff6ff'; border='#3b82f6'
+    }
+    const clickable = !answered
+    const clickAttr = clickable ? `onclick="newExamAnswer('${q.id}','${opt.id}',${opt.is_correct})"` : 'disabled'
+    return `<button ${clickAttr}
+      style="width:100%;text-align:right;padding:14px 18px;border-radius:12px;border:2px solid ${border};
+      background:${bg};cursor:${clickable?'pointer':'default'};margin-bottom:10px;
+      display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;color:var(--text);
+      transition:all .15s">
+      <span style="font-weight:800;min-width:24px;color:#94a3b8;font-size:13px">${opt.letter||''}</span>
+      <span style="flex:1">${opt.text}</span>
+      ${icon?`<span style="font-size:18px">${icon}</span>`:''}
+    </button>`
+  }).join('')
+
+  const canNext = answered || !STATE.showAnswersDuring
+  const isLast = idx + 1 >= qs.length
+
+  document.getElementById('questions-list').innerHTML = `
+    <div style="margin-bottom:12px">
+      <button onclick="STATE.examStarted=false;STATE.examQuestionIndex=0;STATE.examCustomTimer=0;const sb=document.querySelector('.sticky-bar');if(sb)sb.style.display='';renderQuestions()"
+        style="padding:7px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:var(--bg-card);color:var(--text);font-weight:700;cursor:pointer;font-size:13px">
+        ← كل الاختبارات
+      </button>
+    </div>
+
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <!-- Question -->
+      <div style="flex:1;min-width:0">
+        <div style="background:linear-gradient(135deg,#0a2d6e,#1a4fa8);border-radius:14px;padding:20px;margin-bottom:12px">
+          <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:8px;font-weight:600">سؤال ${idx+1} من ${qs.length}</div>
+          ${q.image_url?`<img src="${q.image_url}" style="max-width:100%;border-radius:10px;margin-bottom:12px">`:''}
+          <div style="font-size:16px;font-weight:700;color:white;line-height:1.7">${q.text}</div>
+        </div>
+        <div style="background:var(--bg-card);border-radius:14px;border:1px solid var(--border);padding:16px;margin-bottom:12px">
+          ${optHtml}
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button onclick="STATE.examQuestionIndex=Math.max(0,${idx}-1);renderNewExamQuestion()"
+            ${idx===0?'disabled':''}
+            style="padding:12px 20px;border-radius:12px;border:1.5px solid #e2e8f0;background:var(--bg-card);color:var(--text);font-weight:700;cursor:pointer;opacity:${idx===0?'0.4':'1'}">
+            السابق →
+          </button>
+          <button onclick="${isLast?'showNewExamResults(STATE._examQs)':'STATE.examQuestionIndex='+(idx+1)+';renderNewExamQuestion()'}"
+            ${!canNext?'disabled':''}
+            style="flex:1;padding:12px 20px;border-radius:12px;border:none;
+            background:${canNext?'linear-gradient(90deg,#1d4ed8,#2563eb)':'#94a3b8'};
+            color:white;font-weight:800;cursor:${canNext?'pointer':'not-allowed'};font-size:15px">
+            ${isLast?'🏁 إنهاء الاختبار':'← التالي'}
+          </button>
+        </div>
+      </div>
+
+      <!-- Right sidebar: progress -->
+      <div style="width:155px;flex-shrink:0;background:var(--bg-card);border-radius:14px;padding:14px;border:1px solid var(--border);position:sticky;top:10px">
+        <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px;text-align:center">ملخص نتيجة الاختبار</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+          <span style="font-size:11px;color:#10b981;font-weight:700">✅ ${correct}</span>
+          <span style="font-size:11px;color:#ef4444;font-weight:700">❌ ${wrong}</span>
+          <span style="font-size:11px;color:#94a3b8;font-weight:700">⬜ ${qs.length-correct-wrong}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center">${dots}</div>
+      </div>
+    </div>`
+}
+
+async function newExamAnswer(qid, optId, isCorrect) {
+  const { data: { user } } = await db.auth.getUser()
+  STATE.answers[qid] = { optionId: optId, correct: isCorrect }
+  if (user) {
+    await db.from('student_answers').upsert({
+      student_id: user.id, question_id: qid, option_id: optId,
+      is_correct: isCorrect, answered_at: new Date().toISOString()
+    })
+  }
+  renderNewExamQuestion()
+}
+
+function showNewExamResults(qs) {
+  clearExamTimer()
+  const correct = qs.filter(q => STATE.answers[q.id]?.correct).length
+  const wrong = qs.filter(q => STATE.answers[q.id] && !STATE.answers[q.id].correct).length
+  const pct = Math.round(correct/qs.length*100)
+  const wrongQs = qs.filter(q => STATE.answers[q.id] && !STATE.answers[q.id].correct)
+
+  document.getElementById('questions-list').innerHTML = `
+    <div style="max-width:500px;margin:0 auto;text-align:center;padding:32px 16px">
+      <div style="font-size:60px;margin-bottom:16px">${pct>=70?'🏆':pct>=50?'👍':'💪'}</div>
+      <div style="font-size:32px;font-weight:900;color:${pct>=70?'#16a34a':pct>=50?'#d97706':'#dc2626'};margin-bottom:8px">${pct}%</div>
+      <div style="font-size:16px;color:var(--text-muted);margin-bottom:24px">${correct} صح من ${qs.length} سؤال</div>
+
+      <div style="display:flex;gap:12px;justify-content:center;margin-bottom:28px">
+        <div style="background:#f0fdf4;border-radius:12px;padding:14px 20px;border:1px solid #4ade80">
+          <div style="font-size:24px;font-weight:900;color:#16a34a">${correct}</div>
+          <div style="font-size:12px;color:#16a34a">صحيح</div>
+        </div>
+        <div style="background:#fef2f2;border-radius:12px;padding:14px 20px;border:1px solid #f87171">
+          <div style="font-size:24px;font-weight:900;color:#dc2626">${wrong}</div>
+          <div style="font-size:12px;color:#dc2626">خطأ</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:12px;padding:14px 20px;border:1px solid #e2e8f0">
+          <div style="font-size:24px;font-weight:900;color:#475569">${qs.length-correct-wrong}</div>
+          <div style="font-size:12px;color:#475569">لم يجب</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button onclick="STATE.examStarted=false;STATE.examQuestionIndex=0;STATE.examCustomTimer=0;renderQuestions()"
+          style="padding:12px 24px;background:#1d4ed8;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">
+          🔄 إعادة الاختبار
+        </button>
+        ${wrongQs.length>0?`<button onclick="showWrongQuestions()"
+          style="padding:12px 24px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">
+          📋 مراجعة الأخطاء (${wrongQs.length})
+        </button>`:''}
+      </div>
+    </div>`
+}
+
+function showWrongQuestions() {
+  const qs = STATE._examQs || []
+  const wrongQs = qs.filter(q => STATE.answers[q.id] && !STATE.answers[q.id].correct)
+
+  document.getElementById('questions-list').innerHTML = `
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">
+      <button onclick="showNewExamResults(STATE._examQs)"
+        style="padding:8px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:var(--bg-card);color:var(--text);font-weight:700;cursor:pointer">
+        ← النتيجة
+      </button>
+      <span style="font-weight:700;color:var(--text)">الأسئلة الخاطئة (${wrongQs.length})</span>
+    </div>
+    ${wrongQs.map((q,i) => {
+      const myAnswer = q.options.find(o => o.id === STATE.answers[q.id]?.optionId)
+      const correctAnswer = q.options.find(o => o.is_correct)
+      return `
+      <div style="background:var(--bg-card);border-radius:14px;border:1.5px solid #f87171;padding:18px;margin-bottom:14px">
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:6px">سؤال ${i+1}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px;line-height:1.6">${q.text}</div>
+        <div style="background:#fef2f2;border-radius:10px;padding:10px 14px;margin-bottom:8px">
+          <span style="font-size:12px;color:#dc2626;font-weight:700">❌ إجابتك: </span>
+          <span style="font-size:13px;color:var(--text)">${myAnswer?.text||'لم يجب'}</span>
+        </div>
+        <div style="background:#f0fdf4;border-radius:10px;padding:10px 14px">
+          <span style="font-size:12px;color:#16a34a;font-weight:700">✅ الصحيح: </span>
+          <span style="font-size:13px;color:var(--text)">${correctAnswer?.text||''}</span>
+        </div>
+      </div>`
+    }).join('')}`
+}
+
+function beginExam() {
+  const showDuring = document.getElementById('show-answers-during')?.checked !== false
+  STATE.showAnswersDuring = showDuring
+  STATE.examStarted = true
+  STATE.examMode = true
+  STATE.examQuestionIndex = 0
+  if (STATE.examCustomTimer > 0) {
+    const sub = STATE.subjects.find(s => s.id === STATE.activeSubject)
+    const ch = sub?.chapters.find(c => c.id === STATE.activeChapter)
+    startExam(STATE.examCustomTimer, ch?.name || '')
+  } else {
+    renderQuestions()
+  }
+}
+
+function startExamMode(duration, name) {
+  STATE.examStarted = true
+  STATE.examMode = true
+  STATE.examQuestionIndex = 0
+  if (duration > 0) startExam(duration, name)
+  else renderQuestions()
+}
+
+function renderExamQuestion(qs) {
+  STATE._examQs = qs
+  const idx = STATE.examQuestionIndex
+  const q = qs[idx]
+  if (!q) {
+    showExamResults(qs)
+    return
+  }
+
+  const answered = STATE.answers[q.id]
+  const total = qs.length
+
+  // Build progress dots
+  const dots = qs.map((qu, i) => {
+    const ans = STATE.answers[qu.id]
+    const color = !ans ? '#e2e8f0' : ans.correct ? '#10b981' : '#ef4444'
+    const textColor = !ans ? '#94a3b8' : 'white'
+    const border = i === idx ? '3px solid #1d4ed8' : 'none'
+    return `<div onclick="STATE.examQuestionIndex=${i};renderQuestions()"
+      style="width:32px;height:32px;border-radius:50%;background:${color};color:${textColor};
+      display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+      cursor:pointer;border:${border};flex-shrink:0">${i+1}</div>`
+  }).join('')
+
+  document.getElementById('questions-list').innerHTML = `
+    <div style="display:flex;gap:16px;min-height:400px">
+      <!-- Questions progress sidebar -->
+      <div style="width:180px;flex-shrink:0;background:var(--bg-card);border-radius:14px;padding:14px;border:1px solid var(--border);align-self:start;position:sticky;top:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px">التقدم ${idx+1}/${total}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${dots}</div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:#10b981;font-weight:700">✅ صح: ${qs.filter(qu=>STATE.answers[qu.id]?.correct).length}</div>
+          <div style="font-size:11px;color:#ef4444;font-weight:700;margin-top:4px">❌ خطأ: ${qs.filter(qu=>STATE.answers[qu.id]&&!STATE.answers[qu.id].correct).length}</div>
+        </div>
+      </div>
+
+      <!-- Question content -->
+      <div style="flex:1;min-width:0">
+        ${renderExamSingleQuestion(q, idx, total, answered)}
+      </div>
+    </div>`
+}
+
+function renderExamSingleQuestion(q, idx, total, answered) {
+  const showResult = answered && STATE.showAnswersDuring
+  const imgHtml = q.image_url ? `<img src="${q.image_url}" style="max-width:100%;border-radius:10px;margin-bottom:12px">` : ''
+  
+  const optionsHtml = q.options.map(opt => {
+    let cls = ''
+    let style = 'background:var(--bg-card);border:2px solid #e2e8f0;'
+    if (showResult) {
+      if (opt.is_correct) { style = 'background:#f0fdf4;border:2px solid #4ade80;' }
+      else if (STATE.answers[q.id]?.optionId === opt.id) { style = 'background:#fef2f2;border:2px solid #f87171;' }
+      else { style = 'background:var(--bg-card);border:2px solid #e2e8f0;opacity:0.5;' }
+    } else if (answered && STATE.answers[q.id]?.optionId === opt.id) {
+      style = 'background:#eff6ff;border:2px solid #3b82f6;'
+    }
+    const onclickAttr = answered ? '' : `onclick="examAnswer('${q.id}','${opt.id}',${opt.is_correct})"`
+    return `<button ${onclickAttr}
+      style="${style}width:100%;text-align:right;padding:12px 16px;border-radius:12px;cursor:${answered?'default':'pointer'};margin-bottom:8px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;color:var(--text);border-style:solid"
+      ${answered?'disabled':''}>
+      <span style="font-weight:700;min-width:20px;color:#94a3b8">${opt.letter||''}</span>
+      <span style="flex:1">${opt.text}</span>
+      ${showResult && opt.is_correct ? '<span>✅</span>' : ''}
+      ${showResult && STATE.answers[q.id]?.optionId===opt.id && !opt.is_correct ? '<span>❌</span>' : ''}
+    </button>`
+  }).join('')
+
+  const canGoNext = answered || !STATE.showAnswersDuring
+  const navHtml = `
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="STATE.examQuestionIndex=Math.max(0,${idx}-1);renderQuestions()"
+        ${idx===0?'disabled':''} 
+        style="padding:10px 18px;border-radius:10px;border:1.5px solid #e2e8f0;background:var(--bg-card);color:var(--text);font-weight:700;cursor:pointer;opacity:${idx===0?'0.4':'1'}">
+        ← السابق
+      </button>
+      <button onclick="${idx+1===total?'showExamResults(STATE._examQs||[])':'(STATE.examQuestionIndex='+( idx+1)+',renderQuestions())'}"
+        ${!canGoNext?'disabled':''}
+        style="flex:1;padding:10px 18px;border-radius:10px;border:none;background:${canGoNext?'#1d4ed8':'#94a3b8'};color:white;font-weight:700;cursor:${canGoNext?'pointer':'not-allowed'}">
+        ${idx+1===total?'🏁 إنهاء الاختبار':'التالي →'}
+      </button>
+    </div>`
+
+  return `
+    <div style="background:var(--bg-card);border-radius:14px;border:1px solid var(--border);padding:20px;margin-bottom:12px">
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:8px;font-weight:600">سؤال ${idx+1} من ${total}</div>
+      ${imgHtml}
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;line-height:1.7">${q.text}</div>
+      ${optionsHtml}
+    </div>
+    ${navHtml}`
+}
+
+async function examAnswer(qid, optId, isCorrect) {
+  const { data: { user } } = await db.auth.getUser()
+  STATE.answers[qid] = { optionId: optId, correct: isCorrect }
+  if (user) {
+    await db.from('student_answers').upsert({
+      student_id: user.id, question_id: qid, option_id: optId,
+      is_correct: isCorrect, answered_at: new Date().toISOString()
+    })
+  }
+  renderQuestions()
+}
+
+function showExamResults(qs) {
+  const correct = qs.filter(q => STATE.answers[q.id]?.correct).length
+  const pct = Math.round(correct/qs.length*100)
+  document.getElementById('questions-list').innerHTML = `
+    <div style="text-align:center;padding:40px 20px;background:var(--bg-card);border-radius:14px;border:1px solid var(--border)">
+      <div style="font-size:60px;margin-bottom:16px">${pct>=70?'🏆':pct>=50?'👍':'💪'}</div>
+      <div style="font-size:28px;font-weight:900;color:${pct>=70?'#16a34a':pct>=50?'#d97706':'#dc2626'};margin-bottom:8px">${pct}%</div>
+      <div style="font-size:16px;color:var(--text-muted);margin-bottom:24px">${correct} من ${qs.length} إجابة صحيحة</div>
+      <button onclick="STATE.examStarted=false;STATE.examMode=false;STATE.examQuestionIndex=0;renderQuestions()"
+        style="background:#1d4ed8;color:white;border:none;padding:12px 28px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">
+        🔄 إعادة الاختبار
+      </button>
+    </div>`
+}
+
 function startExam(duration, name) {
   STATE.examStarted = true
   STATE.examTimeLeft = duration
@@ -1623,6 +2185,14 @@ function contactAction(type) {
 }
 
 function closeContact() { document.getElementById('contact-modal').classList.add('hidden') }
+
+window.addEventListener('popstate', function(e) {
+  const page = e.state?.page || 'home'
+  if (page === 'home') goHome()
+  else if (page === 'subjects') { document.querySelectorAll('.picker-screen').forEach(s=>s.classList.remove('active')); document.getElementById('subject-picker').classList.add('active') }
+  else if (page === 'section') { document.querySelectorAll('.picker-screen').forEach(s=>s.classList.remove('active')); document.getElementById('section-picker').classList.add('active') }
+  else if (page === 'lessons' || page === 'exams') showSectionPicker()
+})
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 function openSettings() {

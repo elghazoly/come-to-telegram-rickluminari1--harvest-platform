@@ -201,7 +201,7 @@ export default function MediaPage() {
 
       {/* Header */}
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           {(['videos','images'] as const).map(t => (
@@ -215,10 +215,10 @@ export default function MediaPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Upload Panel */}
           <div className="col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 sticky top-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:sticky top-6">
               <h2 className="font-bold text-slate-800 mb-4">
                 {tab === 'videos' ? '🎬 رفع فيديو' : '🖼️ رفع صورة'}
               </h2>
@@ -287,7 +287,7 @@ export default function MediaPage() {
           </div>
 
           {/* Files Grid */}
-          <div className="col-span-2">
+          <div className="col-span-1 md:col-span-2">
             <input value={search} onChange={e => setSearch(e.target.value)}
                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 shadow-sm mb-4"
                    placeholder="🔍 بحث بالمادة أو الفصل أو السؤال..."/>
@@ -302,7 +302,7 @@ export default function MediaPage() {
             ) : (
               <div className="space-y-3">
                 {filtered.map(f => (
-                  <div key={f.key} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-4">
+                  <div key={f.key} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
 
                     {/* Thumbnail */}
                     <div className="w-20 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100 flex items-center justify-center cursor-pointer"

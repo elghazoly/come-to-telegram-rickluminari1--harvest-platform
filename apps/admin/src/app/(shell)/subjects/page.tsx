@@ -124,7 +124,7 @@ export default function SubjectsPage() {
       <main className="max-w-5xl mx-auto px-6 py-8">
 
         {/* Top bar */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, flexWrap:'wrap', gap:8 }}>
           <h1 style={{ fontSize:20, fontWeight:800, color:'#1e293b', margin:0 }}>📚 المواد الدراسية</h1>
           <button onClick={openAdd}
                   style={{ background:'linear-gradient(90deg,#0a2d6e,#1a4fa8)', color:'white', border:'none', padding:'9px 18px', borderRadius:12, fontSize:13, fontWeight:700, cursor:'pointer' }}>
@@ -152,7 +152,7 @@ export default function SubjectsPage() {
               return (
                 <div key={s.id}
                      className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4">
+                  <div className="flex flex-col sm:flex-row items-start gap-4">
                     {/* Icon */}
                     <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl bg-blue-50 flex-shrink-0">
                       {s.icon || '📚'}
@@ -190,7 +190,7 @@ export default function SubjectsPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0 w-full sm:w-auto">
                       <button onClick={() => router.push(`/subjects/${s.id}/chapters`)}
                               className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold px-3 py-2 rounded-lg text-sm transition-colors">
                         📂 الفصول

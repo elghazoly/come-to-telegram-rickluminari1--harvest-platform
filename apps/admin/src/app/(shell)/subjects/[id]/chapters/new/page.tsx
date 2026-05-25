@@ -29,6 +29,7 @@ export default function NewChapterPage() {
   const [step,        setStep]        = useState<Step>('upload')
   const [chapterName, setChapterName] = useState('')
   const [chapterIcon, setChapterIcon] = useState('')
+  const [chapterType, setChapterType] = useState<'lesson'|'exam'>('lesson')
   const [rules,       setRules]       = useState('')
   const [fileType,    setFileType]    = useState<'pdf'|'md'>('pdf')
   const [pdfFile,     setPdfFile]     = useState<File | null>(null)
@@ -161,7 +162,7 @@ export default function NewChapterPage() {
 
     const { data: chapter, error: chErr } = await supabase
       .from('chapters')
-      .insert({ name: chapterName, icon: chapterIcon, subject_id: subjectId, order_num: maxOrder + 1 })
+      .insert({ name: chapterName, icon: chapterIcon, subject_id: subjectId, order_num: maxOrder + 1, chapter_type: chapterType })
       .select().single()
 
     if (chErr || !chapter) {
@@ -286,6 +287,19 @@ export default function NewChapterPage() {
                   <input value={chapterName} onChange={e => setChapterName(e.target.value)}
                          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500"
                          placeholder="مثال: الأنماط والمنطق"/>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">نوع الفصل</label>
+                  <div style={{display:'flex',gap:12}}>
+                    <button type="button" onClick={() => setChapterType('lesson')}
+                      style={{flex:1,padding:'10px 16px',borderRadius:12,border:`2px solid ${chapterType==='lesson'?'#1d4ed8':'#e2e8f0'}`,background:chapterType==='lesson'?'#eff6ff':'white',color:chapterType==='lesson'?'#1d4ed8':'#475569',fontWeight:700,cursor:'pointer'}}>
+                      📖 شرح مع أسئلة
+                    </button>
+                    <button type="button" onClick={() => setChapterType('exam')}
+                      style={{flex:1,padding:'10px 16px',borderRadius:12,border:`2px solid ${chapterType==='exam'?'#ea580c':'#e2e8f0'}`,background:chapterType==='exam'?'#fff7ed':'white',color:chapterType==='exam'?'#ea580c':'#475569',fontWeight:700,cursor:'pointer'}}>
+                      📝 اختبار إلكتروني
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">الأيقونة</label>

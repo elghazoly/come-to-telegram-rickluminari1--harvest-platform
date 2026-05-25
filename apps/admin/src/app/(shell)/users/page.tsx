@@ -125,7 +125,7 @@ export default function UsersPage() {
     <div>
       {/* Header */}
 
-      <main className="max-w-5xl mx-auto px-6 py-8">
+      <main className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
         {/* Top bar */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
           <h1 style={{ fontSize:20, fontWeight:800, color:'#1e293b', margin:0 }}>👥 المستخدمون</h1>
@@ -136,7 +136,7 @@ export default function UsersPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
           {([
             { key: 'all',     label: 'الكل',      icon: '👥', color: '#0a2d6e' },
             { key: 'admin',   label: 'الأدمن',     icon: '👑', color: '#7c3aed' },
@@ -170,65 +170,45 @@ export default function UsersPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 text-slate-400">لا يوجد مستخدمون</div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="text-right px-5 py-3 font-semibold text-slate-600">الاسم</th>
-                  <th className="text-right px-5 py-3 font-semibold text-slate-600">الدور</th>
-                  <th className="text-right px-5 py-3 font-semibold text-slate-600">الهاتف</th>
-                  <th className="text-right px-5 py-3 font-semibold text-slate-600">تاريخ الإنشاء</th>
-                  <th className="text-center px-5 py-3 font-semibold text-slate-600">إجراء</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(u => (
-                  <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm">
-                          {u.full_name?.charAt(0) || '?'}
-                        </div>
-                        <span className="font-medium text-slate-800">{u.full_name || '—'}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <select value={u.role}
-                              onChange={e => handleRoleChange(u, e.target.value)}
-                              className={`text-xs font-bold px-3 py-1.5 rounded-full border-0 cursor-pointer ${ROLE_COLORS[u.role] || ''}`}>
-                        <option value="admin">👑 أدمن</option>
-                        <option value="teacher">👨‍🏫 معلم</option>
-                        <option value="student">👨‍🎓 طالب</option>
-                      </select>
-                    </td>
-                    <td className="px-5 py-4 text-slate-500">{u.phone || '—'}</td>
-                    <td className="px-5 py-4 text-slate-400 text-xs">
-                      {new Date(u.created_at).toLocaleDateString('ar-EG')}
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <div style={{display:'flex',gap:8,justifyContent:'center',alignItems:'center'}}>
-                        {u.device_pending && (
-                          <button onClick={() => handleApproveDevice(u)}
-                                  style={{background:'#dcfce7',color:'#166534',border:'none',padding:'4px 10px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer'}}>
-                            📱 موافقة جهاز
-                          </button>
-                        )}
-                        {u.device_id && (
-                          <button onClick={() => handleResetDevice(u)}
-                                  style={{background:'#fef9c3',color:'#854d0e',border:'none',padding:'4px 10px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer'}}>
-                            🔄 إعادة تعيين
-                          </button>
-                        )}
-                        <button onClick={() => handleDelete(u)}
-                                className="text-red-500 hover:text-red-700 text-sm font-medium hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
-                          🗑️ حذف
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-3">
+            {filtered.map(u => (
+              <div key={u.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm flex-shrink-0">
+                    {u.full_name?.charAt(0) || '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-slate-800 text-sm">{u.full_name || '—'}</div>
+                    <div className="text-slate-400 text-xs">{u.phone || '—'} · {new Date(u.created_at).toLocaleDateString('ar-EG')}</div>
+                  </div>
+                  <select value={u.role}
+                          onChange={e => handleRoleChange(u, e.target.value)}
+                          className={`text-xs font-bold px-2 py-1 rounded-full border-0 cursor-pointer flex-shrink-0 ${ROLE_COLORS[u.role] || ''}`}>
+                    <option value="admin">👑 أدمن</option>
+                    <option value="teacher">👨‍🏫 معلم</option>
+                    <option value="student">👨‍🎓 طالب</option>
+                  </select>
+                </div>
+                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                  {u.device_pending && (
+                    <button onClick={() => handleApproveDevice(u)}
+                            style={{background:'#dcfce7',color:'#166534',border:'none',padding:'5px 10px',borderRadius:8,fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                      📱 موافقة جهاز
+                    </button>
+                  )}
+                  {u.device_id && (
+                    <button onClick={() => handleResetDevice(u)}
+                            style={{background:'#fef9c3',color:'#854d0e',border:'none',padding:'5px 10px',borderRadius:8,fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                      🔄 إعادة تعيين
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(u)}
+                          style={{background:'#fef2f2',color:'#dc2626',border:'none',padding:'5px 10px',borderRadius:8,fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                    🗑️ حذف
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </main>
